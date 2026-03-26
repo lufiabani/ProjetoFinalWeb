@@ -1,0 +1,48 @@
+# docker-compose.yml
+# PostgreSQL + pgAdmin para ambiente de desenvolvimento
+# Funciona em Intel e Apple Silicon (M1/M2/M3)
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    # A imagem oficial do PostgreSQL tem suporte nativo a arm64 (Apple Silicon).
+    container_name: postgres-aula
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: produtosdb
+      # O banco "produtosdb" é criado automaticamente na primeira vez.
+    ports:
+      - "5433:5432"
+      # Expõe a porta 5432 do container para o Mac.
+      # A API .NET conecta via localhost:5432.
+    volumes:
+      - dados-postgres:/var/lib/postgresql/data
+      # Persiste os dados mesmo ao parar/reiniciar o container.
+    networks:
+      - rede-db
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    # A imagem do pgAdmin tem suporte a arm64 desde a versão 6.x.
+    container_name: pgadmin-aula
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "8080:80"
+      # Acesse o pgAdmin em: http://localhost:8080
+    depends_on:
+      - postgres
+    networks:
+      - rede-db
+
+volumes:
+  dados-postgres:
+
+networks:
+  rede-db:
+    driver: bridge
