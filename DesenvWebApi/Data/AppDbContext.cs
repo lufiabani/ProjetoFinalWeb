@@ -17,6 +17,63 @@ public class AppDbContext : DbContext
     public DbSet<AvaliacaoUsuario> AvaliacoesUsuario { get; set; }
     public DbSet<Comentario> Comentarios { get; set; }
 
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var utc = DateTime.UtcNow;
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    switch (entry.Entity)
+                    {
+                        case Filme f:
+                            f.CriadoEm = utc;
+                            f.AtualizadoEm = utc;
+                            f.SincronizadoEm = utc;
+                            break;
+                        case Genero g:
+                            g.SincronizadoEm = utc;
+                            break;
+                        case Favorito fav:
+                            fav.AdicionadoEm = utc;
+                            break;
+                        case AvaliacaoUsuario a:
+                            a.CriadoEm = utc;
+                            a.AtualizadoEm = utc;
+                            break;
+                        case Comentario c:
+                            c.CriadoEm = utc;
+                            c.EditadoEm = utc;
+                            break;
+                    }
+
+                    break;
+                case EntityState.Modified:
+                    switch (entry.Entity)
+                    {
+                        case Filme f:
+                            f.AtualizadoEm = utc;
+                            f.SincronizadoEm = utc;
+                            break;
+                        case Genero g:
+                            g.SincronizadoEm = utc;
+                            break;
+                        case AvaliacaoUsuario a:
+                            a.AtualizadoEm = utc;
+                            break;
+                        case Comentario c:
+                            c.EditadoEm = utc;
+                            break;
+                    }
+
+                    break;
+            }
+        }
+
+        return await base.SaveChangesAsync(cancellationToken);
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Usuario>(e =>
