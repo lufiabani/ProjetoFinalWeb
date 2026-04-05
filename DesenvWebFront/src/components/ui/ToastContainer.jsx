@@ -6,7 +6,7 @@ function ToastContainer() {
   const { toasts, removeToast } = useToast();
 
   return (
-    <div className="fixed top-4 right-4 z-[60] flex flex-col gap-2 w-80">
+    <div className="fixed left-3 right-3 top-3 z-[60] flex max-w-md flex-col gap-2 sm:left-auto sm:right-4 sm:top-4 sm:w-80 sm:max-w-none">
       {toasts.map((toast) => (
         <Toast
           key={toast.id}

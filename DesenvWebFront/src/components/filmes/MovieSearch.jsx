@@ -128,7 +128,7 @@ export default function MovieSearch() {
       </div>
 
       {mostrarPainel ? (
-        <div className="absolute right-0 top-full z-50 mt-2 w-full min-w-[320px] max-h-[min(70vh,420px)] overflow-y-auto rounded-xl border border-slate-200 bg-white py-2 shadow-xl">
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[min(70vh,420px)] w-full min-w-0 overflow-y-auto rounded-xl border border-slate-200 bg-white py-2 shadow-xl sm:left-auto sm:right-0 sm:min-w-[280px] sm:max-w-[min(100vw-2rem,28rem)]">
           {erro ? <p className="px-4 py-3 text-sm text-red-600">{erro}</p> : null}
           {!aCarregar && !erro && !temResultados && debounced.length >= 2 ? (
             <p className="px-4 py-6 text-center text-sm text-slate-500">

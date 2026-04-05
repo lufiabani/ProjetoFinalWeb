@@ -1,6 +1,6 @@
 // src/components/layout/Sidebar.jsx
 import { NavLink } from 'react-router-dom';
-import { Film, Home, LogOut, Tag, FileText, UsersRound } from 'lucide-react';
+import { Film, Home, LogOut, Tag, FileText, UsersRound, X } from 'lucide-react';
 import { useKeycloakContext } from '../../contexts/KeycloakContext';
 
 const menuItems = [
@@ -10,53 +10,68 @@ const menuItems = [
   { to: '/fornecedores', label: 'Fornecedores', icon: UsersRound, enabled: false },
 ];
 
-function Sidebar() {
+function Sidebar({ mobileOpen, onClose }) {
   const kc = useKeycloakContext();
 
   const sair = () => {
     kc.logout({ redirectUri: window.location.origin });
   };
 
+  const fecharSeMobile = () => {
+    onClose?.();
+  };
+
   return (
-    <aside className="w-64 bg-gray-900 text-white flex flex-col flex-shrink-0">
-      <div className="px-6 py-5 border-b border-gray-700">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-violet-600 rounded-lg flex items-center justify-center">
-            <Film className="w-5 h-5 text-white" />
+    <aside
+      className={`fixed inset-y-0 left-0 z-50 flex h-full w-[min(100%,16rem)] max-w-[85vw] flex-col bg-gray-900 text-white transition-transform duration-200 ease-out lg:static lg:z-auto lg:w-64 lg:max-w-none lg:flex-shrink-0 lg:translate-x-0 ${
+        mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2 border-b border-gray-700 px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-violet-600">
+            <Film className="h-5 w-5 text-white" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-lg font-bold leading-tight">Filmoteca</h1>
             <p className="text-xs text-gray-400">Keycloak + TMDB</p>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={fecharSeMobile}
+          className="rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white lg:hidden"
+          aria-label="Fechar menu"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
-      <nav className="flex-1 px-3 py-4">
-        <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Menu
-        </p>
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Menu</p>
         <ul className="space-y-1">
           {menuItems.map((item) => (
             <li key={item.to}>
               {item.enabled ? (
                 <NavLink
                   to={item.to}
+                  onClick={fecharSeMobile}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-violet-600 text-white'
                         : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                     }`
                   }
                 >
-                  <item.icon className="w-5 h-5" />
-                  {item.label}
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  <span className="truncate">{item.label}</span>
                 </NavLink>
               ) : (
-                <span className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 cursor-not-allowed">
-                  <item.icon className="w-5 h-5" />
-                  {item.label}
-                  <span className="ml-auto text-[10px] bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded">
+                <span className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600">
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  <span className="min-w-0 truncate">{item.label}</span>
+                  <span className="ml-auto flex-shrink-0 rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-400">
                     Em breve
                   </span>
                 </span>
@@ -66,14 +81,16 @@ function Sidebar() {
         </ul>
       </nav>
 
-      <div className="px-3 py-4 border-t border-gray-700 space-y-2">
+      <div className="space-y-2 border-t border-gray-700 px-3 py-4">
         <button
           type="button"
           onClick={sair}
-          className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+          title="Sair da sessão Keycloak"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-800 hover:text-white"
         >
-          <LogOut className="w-5 h-5" />
-          Sair (Keycloak)
+          <LogOut className="h-5 w-5 flex-shrink-0" />
+          <span className="truncate sm:hidden">Sair</span>
+          <span className="hidden truncate sm:inline">Sair (Keycloak)</span>
         </button>
         <p className="px-3 text-xs text-gray-500">Desenv. Sistemas Web</p>
       </div>

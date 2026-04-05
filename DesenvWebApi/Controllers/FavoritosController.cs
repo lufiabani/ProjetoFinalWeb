@@ -40,6 +40,7 @@ public class FavoritosController : ControllerBase
                     Id = f.Filme.Id,
                     TmdbId = f.Filme.TmdbId,
                     Titulo = f.Filme.Titulo,
+                    TituloOriginal = f.Filme.TituloOriginal,
                     PosterPath = f.Filme.PosterPath,
                     DataLancamento = f.Filme.DataLancamento,
                     NotaMediaTmdb = f.Filme.NotaMediaTmdb

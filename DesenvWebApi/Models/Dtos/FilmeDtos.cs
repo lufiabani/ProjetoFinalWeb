@@ -44,6 +44,7 @@ public class FilmeResumoDto
     public long Id { get; set; }
     public int TmdbId { get; set; }
     public string Titulo { get; set; } = string.Empty;
+    public string? TituloOriginal { get; set; }
     public string? PosterPath { get; set; }
     public DateOnly? DataLancamento { get; set; }
     public decimal? NotaMediaTmdb { get; set; }

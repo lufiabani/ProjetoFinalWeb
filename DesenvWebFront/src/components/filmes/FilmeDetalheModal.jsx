@@ -165,19 +165,21 @@ export default function FilmeDetalheModal({
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="filme-modal-titulo"
-      >
+      {/* pointer-events: painel clicável por cima do backdrop (evita stacking estranho com flex/blur) */}
+      <div className="fixed inset-0 z-50 isolate">
         <button
           type="button"
-          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+          className="absolute inset-0 z-0 bg-slate-900/70"
           onClick={onFechar}
           aria-label="Fechar"
         />
-        <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl animate-fade-in">
+        <div className="relative z-10 flex min-h-full w-full items-end justify-center p-0 sm:items-center sm:p-4 pointer-events-none">
+          <div
+            className="pointer-events-auto w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl animate-fade-in"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="filme-modal-titulo"
+          >
           <div className="sticky top-0 flex justify-end bg-gradient-to-b from-white to-transparent p-2 z-10">
             <button
               type="button"
@@ -188,9 +190,9 @@ export default function FilmeDetalheModal({
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="px-6 pb-6 -mt-8">
-            <div className="flex gap-4">
-              <div className="w-28 flex-shrink-0 overflow-hidden rounded-xl bg-slate-200 shadow">
+          <div className="-mt-8 px-4 pb-5 sm:px-6 sm:pb-6">
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+              <div className="w-24 flex-shrink-0 overflow-hidden rounded-xl bg-slate-200 shadow sm:w-28">
                 {src ? (
                   <img src={src} alt="" className="w-full aspect-[2/3] object-cover" />
                 ) : (
@@ -199,14 +201,17 @@ export default function FilmeDetalheModal({
                   </div>
                 )}
               </div>
-              <div className="min-w-0">
-                <h2 id="filme-modal-titulo" className="text-lg font-bold text-slate-900 leading-tight">
+              <div className="min-w-0 w-full text-center sm:w-auto sm:text-left">
+                <h2
+                  id="filme-modal-titulo"
+                  className="text-base font-bold leading-tight text-slate-900 sm:text-lg"
+                >
                   {filme.titulo}
                 </h2>
                 {filme.tituloOriginal && filme.tituloOriginal !== filme.titulo ? (
-                  <p className="text-sm text-slate-500 mt-0.5">{filme.tituloOriginal}</p>
+                  <p className="mt-0.5 text-sm text-slate-500">{filme.tituloOriginal}</p>
                 ) : null}
-                <div className="mt-2 flex flex-wrap gap-2 text-sm text-slate-600">
+                <div className="mt-2 flex flex-wrap justify-center gap-2 text-sm text-slate-600 sm:justify-start">
                   {filme.dataLancamento ? <span>{String(filme.dataLancamento).slice(0, 4)}</span> : null}
                   {filme.notaMediaTmdb != null ? (
                     <span className="inline-flex items-center gap-0.5 text-amber-600">
@@ -311,7 +316,7 @@ export default function FilmeDetalheModal({
                               {gravandoEdicao ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               ) : null}
-                              Guardar
+                              Salvar
                             </button>
                             <button
                               type="button"
@@ -361,6 +366,7 @@ export default function FilmeDetalheModal({
               </form>
             </section>
           </div>
+        </div>
         </div>
       </div>
 

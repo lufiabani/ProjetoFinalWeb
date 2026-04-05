@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Sparkles, Film, User } from 'lucide-react';
+import { Sparkles, Film, LayoutList, LayoutGrid, Search } from 'lucide-react';
 import { api } from '../../services/api';
 import {
   listarFilmes,
@@ -12,8 +12,10 @@ import { getTmdbApiKey, getTrendingMovies } from '../../services/tmdb';
 import { useFavoritos } from '../../contexts/FavoritosContext';
 import { useToast } from '../../hooks/useToast';
 import FilmeFeedCard from '../filmes/FilmeFeedCard';
+import FilmeGridCard from '../filmes/FilmeGridCard';
 import FilmeDetalheModal from '../filmes/FilmeDetalheModal';
 import TmdbTrendingCard from '../filmes/TmdbTrendingCard';
+import PerfilFavoritosPainel from './PerfilFavoritosPainel';
 
 export default function InicioPage() {
   const [perfil, setPerfil] = useState(null);
@@ -26,6 +28,9 @@ export default function InicioPage() {
   const [modalFilme, setModalFilme] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [gravandoTrendingId, setGravandoTrendingId] = useState(null);
+  const [vistaFilmo, setVistaFilmo] = useState('lista');
+  const [ordenacaoFilmo, setOrdenacaoFilmo] = useState('recentes');
+  const [filtroNomeFilmo, setFiltroNomeFilmo] = useState('');
 
   const { isFavorito, alternar, lista: favoritosLista } = useFavoritos();
   const { success, error: toastError } = useToast();
@@ -35,7 +40,7 @@ export default function InicioPage() {
   const recarregarFilmes = useCallback(async () => {
     setFilmesCarregando(true);
     try {
-      const data = await listarFilmes(1, 40);
+      const data = await listarFilmes(1, 100);
       setFilmes(Array.isArray(data) ? data : []);
     } catch {
       setFilmes([]);
@@ -95,6 +100,10 @@ export default function InicioPage() {
   const abrirModal = useCallback(async (resumo) => {
     try {
       const completo = await obterFilme(resumo.id);
+      if (!completo) {
+        toastError('Não foi possível carregar os detalhes do filme.');
+        return;
+      }
       setModalFilme(completo);
       setModalAberto(true);
     } catch {
@@ -118,7 +127,7 @@ export default function InicioPage() {
           return;
         }
         await upsertFilmeCache(mapTmdbSearchResultToUpsertDto(movie));
-        success('Filme guardado na filmoteca.');
+        success('Filme salvo na filmoteca.');
         await recarregarFilmes();
       } catch (e) {
         const msg = e.response?.data?.mensagem ?? e.message;
@@ -132,17 +141,44 @@ export default function InicioPage() {
 
   const favoritoModal = modalFilme ? isFavorito(modalFilme.id) : false;
 
+  const filmesFiltrados = useMemo(() => {
+    const q = filtroNomeFilmo.trim().toLowerCase();
+    if (!q) return filmes;
+    return filmes.filter((f) => {
+      const t = (f.titulo ?? '').toLowerCase();
+      const o = (f.tituloOriginal ?? '').toLowerCase();
+      return t.includes(q) || o.includes(q);
+    });
+  }, [filmes, filtroNomeFilmo]);
+
+  const filmesOrdenados = useMemo(() => {
+    const arr = [...filmesFiltrados];
+    if (ordenacaoFilmo === 'titulo') {
+      arr.sort((a, b) =>
+        (a.titulo || '').localeCompare(b.titulo || '', 'pt', { sensitivity: 'base' }),
+      );
+    } else if (ordenacaoFilmo === 'estreia') {
+      const ms = (f) => {
+        if (!f.dataLancamento) return 0;
+        const t = new Date(f.dataLancamento).getTime();
+        return Number.isNaN(t) ? 0 : t;
+      };
+      arr.sort((a, b) => ms(b) - ms(a));
+    }
+    return arr;
+  }, [filmesFiltrados, ordenacaoFilmo]);
+
   return (
-    <div className="mx-auto flex max-w-6xl gap-8 px-4 py-6 lg:px-8">
-      <div className="min-w-0 flex-1 space-y-8">
-        <section className="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-violet-600 via-violet-700 to-indigo-800 p-6 text-white shadow-lg">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-3 py-4 sm:px-4 sm:py-6 lg:flex-row lg:gap-8 lg:px-8">
+      <div className="min-w-0 flex-1 space-y-6 sm:space-y-8">
+        <section className="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-violet-600 via-violet-700 to-indigo-800 p-4 text-white shadow-lg sm:p-6">
           <div className="flex items-start gap-3">
             <div className="rounded-xl bg-white/15 p-2 backdrop-blur">
-              <Sparkles className="h-6 w-6" />
+              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">Para ti</h1>
-              <p className="mt-1 max-w-xl text-sm text-violet-100">
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold tracking-tight sm:text-xl">Para ti</h1>
+              <p className="mt-1 max-w-xl text-xs leading-relaxed text-violet-100 sm:text-sm">
                 Tendências da semana no TMDB e os filmes mais recentes na tua filmoteca — estilo feed, como numa rede
                 social de cinéfilos.
               </p>
@@ -150,17 +186,21 @@ export default function InicioPage() {
           </div>
         </section>
 
+        <div className="lg:hidden">
+          <PerfilFavoritosPainel perfil={perfil} perfilErro={perfilErro} favoritosLista={favoritosLista} />
+        </div>
+
         <section>
-          <div className="mb-4 flex items-center justify-between gap-2">
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800">
-              <Film className="h-5 w-5 text-violet-600" />
-              Recomendados · TMDB
+          <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-slate-800 sm:text-lg">
+              <Film className="h-5 w-5 shrink-0 text-violet-600" />
+              <span className="min-w-0">Recomendados · TMDB</span>
             </h2>
             <a
               href="https://www.themoviedb.org/"
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-slate-500 hover:text-violet-600"
+              className="w-fit text-xs text-slate-500 hover:text-violet-600"
             >
               Dados © TMDB
             </a>
@@ -198,7 +238,7 @@ export default function InicioPage() {
         </section>
 
         <section>
-          <h2 className="mb-4 text-lg font-semibold text-slate-800">Na filmoteca</h2>
+          <h2 className="mb-3 text-base font-semibold text-slate-800 sm:text-lg">Na filmoteca</h2>
           {filmesCarregando ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -210,74 +250,114 @@ export default function InicioPage() {
               Ainda não há filmes. Usa a pesquisa acima para adicionar a partir do TMDB.
             </p>
           ) : (
-            <div className="space-y-3">
-              {filmes.map((f) => (
-                <FilmeFeedCard
-                  key={f.id}
-                  filmeId={f.id}
-                  titulo={f.titulo}
-                  posterPath={f.posterPath}
-                  dataLancamento={f.dataLancamento}
-                  notaMediaTmdb={f.notaMediaTmdb}
-                  favorito={isFavorito(f.id)}
-                  onToggleFavorito={() => alternar(f.id)}
-                  onOpen={() => abrirModal(f)}
-                />
-              ))}
-            </div>
+            <>
+              <div className="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:p-3">
+                <div
+                  className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+                  role="group"
+                  aria-label="Vista da lista de filmes"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setVistaFilmo('lista')}
+                    title="Vista em lista"
+                    aria-label="Vista em lista"
+                    aria-pressed={vistaFilmo === 'lista'}
+                    className={`inline-flex items-center justify-center rounded-md p-2 transition-colors ${
+                      vistaFilmo === 'lista'
+                        ? 'bg-white text-violet-700 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <LayoutList className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVistaFilmo('grid')}
+                    title="Vista em grelha"
+                    aria-label="Vista em grelha"
+                    aria-pressed={vistaFilmo === 'grid'}
+                    className={`inline-flex items-center justify-center rounded-md p-2 transition-colors ${
+                      vistaFilmo === 'grid'
+                        ? 'bg-white text-violet-700 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <label className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[200px] sm:max-w-[220px]">
+                  <span className="sr-only">Ordenar por</span>
+                  <select
+                    value={ordenacaoFilmo}
+                    onChange={(e) => setOrdenacaoFilmo(e.target.value)}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20"
+                  >
+                    <option value="recentes">Mais recentes na filmoteca</option>
+                    <option value="estreia">Data de estreia (mais recente)</option>
+                    <option value="titulo">Nome (A–Z)</option>
+                  </select>
+                </label>
+
+                <div className="relative min-w-0 flex-1 sm:min-w-[200px] sm:max-w-sm">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="search"
+                    value={filtroNomeFilmo}
+                    onChange={(e) => setFiltroNomeFilmo(e.target.value)}
+                    placeholder="Filtrar por nome…"
+                    autoComplete="off"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50/80 py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-500/20"
+                  />
+                </div>
+              </div>
+
+              {filmesOrdenados.length === 0 ? (
+                <p className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-6 text-center text-sm text-amber-900">
+                  Nenhum filme corresponde ao nome indicado. Limpa o filtro ou experimenta outro termo.
+                </p>
+              ) : vistaFilmo === 'grid' ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4">
+                  {filmesOrdenados.map((f) => (
+                    <FilmeGridCard
+                      key={f.id}
+                      filmeId={f.id}
+                      titulo={f.titulo}
+                      posterPath={f.posterPath}
+                      dataLancamento={f.dataLancamento}
+                      notaMediaTmdb={f.notaMediaTmdb}
+                      favorito={isFavorito(f.id)}
+                      onToggleFavorito={() => alternar(f.id)}
+                      onOpen={() => abrirModal(f)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filmesOrdenados.map((f) => (
+                    <FilmeFeedCard
+                      key={f.id}
+                      filmeId={f.id}
+                      titulo={f.titulo}
+                      posterPath={f.posterPath}
+                      dataLancamento={f.dataLancamento}
+                      notaMediaTmdb={f.notaMediaTmdb}
+                      favorito={isFavorito(f.id)}
+                      onToggleFavorito={() => alternar(f.id)}
+                      onOpen={() => abrirModal(f)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>
 
-      <aside className="hidden w-72 flex-shrink-0 lg:block">
-        <div className="sticky top-20 space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-4 text-white">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
-                  <User className="h-6 w-6" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs text-slate-300">Sessão</p>
-                  {perfilErro ? (
-                    <p className="text-xs text-rose-300 truncate">Erro ao carregar perfil</p>
-                  ) : perfil ? (
-                    <>
-                      <p className="font-semibold truncate">{perfil.nomeExibicao || perfil.email || 'Utilizador'}</p>
-                      <p className="text-xs text-slate-400 truncate">{perfil.email}</p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-slate-400">A carregar…</p>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Favoritos</p>
-              {favoritosLista.length === 0 ? (
-                <p className="mt-2 text-sm text-slate-500">Ainda sem favoritos. Abre um filme e toca no coração.</p>
-              ) : (
-                <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto">
-                  {favoritosLista.slice(0, 8).map((item) => (
-                    <li key={item.favoritoId}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          document.getElementById(`filme-${item.filme.id}`)?.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center',
-                          });
-                        }}
-                        className="flex w-full items-center gap-2 rounded-lg py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
-                      >
-                        <span className="line-clamp-2 font-medium">{item.filme.titulo}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
+      <aside className="hidden w-72 flex-shrink-0 self-start lg:block">
+        <div className="sticky top-4 space-y-4 lg:top-20">
+          <PerfilFavoritosPainel perfil={perfil} perfilErro={perfilErro} favoritosLista={favoritosLista} />
         </div>
       </aside>
 

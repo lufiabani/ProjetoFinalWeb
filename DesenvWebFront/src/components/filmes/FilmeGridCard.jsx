@@ -8,7 +8,7 @@ function ano(dataLancamento) {
   return /^\d{4}$/.test(y) ? y : null;
 }
 
-export default function FilmeFeedCard({
+export default function FilmeGridCard({
   filmeId,
   titulo,
   posterPath,
@@ -24,36 +24,38 @@ export default function FilmeFeedCard({
   return (
     <article
       id={filmeId != null ? `filme-${filmeId}` : undefined}
-      className="group flex gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm transition hover:border-violet-200 hover:shadow-md scroll-mt-20 sm:gap-4 sm:p-4 sm:scroll-mt-24"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition hover:border-violet-200 hover:shadow-md scroll-mt-20 sm:scroll-mt-24"
     >
       <button
         type="button"
         onClick={onOpen}
-        className="relative h-28 w-[4.5rem] flex-shrink-0 overflow-hidden rounded-xl bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 sm:h-36 sm:w-24"
+        className="relative aspect-[2/3] w-full overflow-hidden bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-inset"
       >
         {src ? (
           <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs text-slate-500">Sem capa</div>
+          <div className="flex h-full w-full items-center justify-center px-2 text-center text-xs text-slate-500">
+            Sem capa
+          </div>
         )}
       </button>
-      <div className="min-w-0 flex-1 flex flex-col">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
         <button type="button" onClick={onOpen} className="min-w-0 text-left">
-          <h3 className="text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-violet-700 sm:text-base">
+          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 group-hover:text-violet-700">
             {titulo}
           </h3>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500 sm:text-sm">
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
             {ano(dataLancamento) ? <span>{ano(dataLancamento)}</span> : null}
             {notaMediaTmdb != null ? (
               <span className="inline-flex items-center gap-0.5 text-amber-600">
-                <Star className="w-3.5 h-3.5 fill-current" />
+                <Star className="w-3 h-3 fill-current" />
                 {Number(notaMediaTmdb).toFixed(1)}
               </span>
             ) : null}
           </div>
         </button>
-        <div className="mt-auto pt-3 flex justify-end">
-          {!desativarFavorito && onToggleFavorito ? (
+        {!desativarFavorito && onToggleFavorito ? (
+          <div className="mt-auto flex justify-end border-t border-slate-100 pt-2">
             <button
               type="button"
               onClick={(e) => {
@@ -67,10 +69,10 @@ export default function FilmeFeedCard({
               }`}
               title={favorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
             >
-              <Heart className={`w-5 h-5 ${favorito ? 'fill-current' : ''}`} />
+              <Heart className={`h-5 w-5 ${favorito ? 'fill-current' : ''}`} />
             </button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
     </article>
   );

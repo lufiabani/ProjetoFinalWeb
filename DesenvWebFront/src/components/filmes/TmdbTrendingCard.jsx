@@ -40,7 +40,7 @@ export default function TmdbTrendingCard({
             className="flex w-full items-center justify-center gap-1 rounded-lg bg-violet-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-violet-700 disabled:opacity-50"
           >
             <BookmarkPlus className="w-3.5 h-3.5" />
-            {gravando ? 'A gravar…' : 'Guardar'}
+            {gravando ? 'A salvar…' : 'Salvar'}
           </button>
         )}
       </div>

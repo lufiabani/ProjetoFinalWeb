@@ -31,16 +31,16 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-3 sm:p-4"
       onClick={onClose}
     >
       <div
-        className={`bg-white rounded-xl shadow-2xl w-full ${sizes[size]} mx-4 animate-fade-in`}
+        className={`w-full max-h-[min(100dvh-1.5rem,40rem)] animate-fade-in overflow-y-auto rounded-xl bg-white shadow-2xl ${sizes[size]} sm:max-h-none`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+        <div className="flex items-center justify-between gap-2 border-b border-gray-200 px-4 py-3 sm:px-6 sm:py-4">
+          <h2 className="min-w-0 text-base font-semibold text-gray-800 sm:text-lg">{title}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1 transition-colors"
@@ -50,7 +50,7 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }) {
         </div>
 
         {/* Body */}
-        <div className="px-6 py-4">{children}</div>
+        <div className="px-4 py-3 sm:px-6 sm:py-4">{children}</div>
       </div>
     </div>
   );

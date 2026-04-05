@@ -39,6 +39,7 @@ public class FilmesController : ControllerBase
                 Id = f.Id,
                 TmdbId = f.TmdbId,
                 Titulo = f.Titulo,
+                TituloOriginal = f.TituloOriginal,
                 PosterPath = f.PosterPath,
                 DataLancamento = f.DataLancamento,
                 NotaMediaTmdb = f.NotaMediaTmdb
@@ -72,6 +73,7 @@ public class FilmesController : ControllerBase
                 Id = f.Id,
                 TmdbId = f.TmdbId,
                 Titulo = f.Titulo,
+                TituloOriginal = f.TituloOriginal,
                 PosterPath = f.PosterPath,
                 DataLancamento = f.DataLancamento,
                 NotaMediaTmdb = f.NotaMediaTmdb
