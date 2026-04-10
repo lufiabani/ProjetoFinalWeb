@@ -1,4 +1,4 @@
-import { Heart, Star } from 'lucide-react';
+import { Heart, Star, Users } from 'lucide-react';
 import { posterUrl as tmdbPoster } from '../../services/tmdb';
 
 function ano(dataLancamento) {
@@ -14,6 +14,7 @@ export default function FilmeGridCard({
   posterPath,
   dataLancamento,
   notaMediaTmdb,
+  totalFavoritos = 0,
   favorito,
   onToggleFavorito,
   onOpen,
@@ -44,12 +45,20 @@ export default function FilmeGridCard({
           <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 group-hover:text-violet-700">
             {titulo}
           </h3>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-            {ano(dataLancamento) ? <span>{ano(dataLancamento)}</span> : null}
-            {notaMediaTmdb != null ? (
-              <span className="inline-flex items-center gap-0.5 text-amber-600">
-                <Star className="w-3 h-3 fill-current" />
-                {Number(notaMediaTmdb).toFixed(1)}
+          <div className="mt-1 flex flex-col gap-1 text-xs text-slate-500">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {ano(dataLancamento) ? <span>{ano(dataLancamento)}</span> : null}
+              {notaMediaTmdb != null ? (
+                <span className="inline-flex items-center gap-0.5 text-amber-600">
+                  <Star className="w-3 h-3 fill-current" />
+                  {Number(notaMediaTmdb).toFixed(1)}
+                </span>
+              ) : null}
+            </div>
+            {totalFavoritos > 0 ? (
+              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+                <Users className="w-3 h-3" />
+                {totalFavoritos}
               </span>
             ) : null}
           </div>

@@ -1,11 +1,12 @@
 // src/hooks/useToast.js
-import { useContext } from 'react';
-import { ToastContext } from '../contexts/ToastContext';
+// Encapsula React Toastify para manter o mesmo hook nos componentes (padrão do .cursorrules).
+import { useCallback } from 'react';
+import { toast } from 'react-toastify';
 
 export function useToast() {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast deve ser usado dentro de um ToastProvider');
-  }
-  return context;
+  const success = useCallback((msg) => toast.success(msg), []);
+  const error = useCallback((msg) => toast.error(msg), []);
+  const info = useCallback((msg) => toast.info(msg), []);
+
+  return { success, error, info };
 }

@@ -26,15 +26,15 @@ export default function PerfilFavoritosPainel({ perfil, perfilErro, favoritosLis
         </div>
       </div>
       <div className="p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Favoritos</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Os teus favoritos</p>
         {favoritosLista.length === 0 ? (
           <p className="mt-2 text-sm text-slate-500">
-            Ainda sem favoritos. Abre um filme e toca no coração.
+            Ainda sem favoritos no teu perfil. Explora o feed e guarda filmes que gostes.
           </p>
         ) : (
           <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto">
             {favoritosLista.slice(0, 8).map((item) => (
-              <li key={item.favoritoId}>
+              <li key={item.id}>
                 <button
                   type="button"
                   onClick={() => {

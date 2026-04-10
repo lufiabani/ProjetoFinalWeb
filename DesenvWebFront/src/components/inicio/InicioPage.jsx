@@ -1,20 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Sparkles, Film, LayoutList, LayoutGrid, Search } from 'lucide-react';
+import { MessagesSquare, Film, LayoutList, LayoutGrid, Search } from 'lucide-react';
 import { api } from '../../services/api';
-import {
-  listarFilmes,
-  mapTmdbSearchResultToUpsertDto,
-  obterFilme,
-  obterFilmePorTmdb,
-  upsertFilmeCache,
-} from '../../services/filmesService';
-import { getTmdbApiKey, getTrendingMovies } from '../../services/tmdb';
-import { useFavoritos } from '../../contexts/FavoritosContext';
+import { listarFilmesFeed, obterFilme } from '../../services/filmesService';
+import { adicionarFavorito, listarFavoritos, removerFavorito } from '../../services/favoritosService';
 import { useToast } from '../../hooks/useToast';
 import FilmeFeedCard from '../filmes/FilmeFeedCard';
 import FilmeGridCard from '../filmes/FilmeGridCard';
 import FilmeDetalheModal from '../filmes/FilmeDetalheModal';
-import TmdbTrendingCard from '../filmes/TmdbTrendingCard';
 import PerfilFavoritosPainel from './PerfilFavoritosPainel';
 
 export default function InicioPage() {
@@ -22,25 +14,20 @@ export default function InicioPage() {
   const [perfilErro, setPerfilErro] = useState(null);
   const [filmes, setFilmes] = useState([]);
   const [filmesCarregando, setFilmesCarregando] = useState(true);
-  const [trending, setTrending] = useState([]);
-  const [trendingErro, setTrendingErro] = useState(null);
-  const [trendingCarregando, setTrendingCarregando] = useState(false);
   const [modalFilme, setModalFilme] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
-  const [gravandoTrendingId, setGravandoTrendingId] = useState(null);
   const [vistaFilmo, setVistaFilmo] = useState('lista');
-  const [ordenacaoFilmo, setOrdenacaoFilmo] = useState('recentes');
+  const [ordenacaoFilmo, setOrdenacaoFilmo] = useState('comunidade');
   const [filtroNomeFilmo, setFiltroNomeFilmo] = useState('');
+  // Favoritos: GET /api/favoritos (N:N com Filme incluído) — estado local, sem contexto
+  const [favoritosLista, setFavoritosLista] = useState([]);
 
-  const { isFavorito, alternar, lista: favoritosLista } = useFavoritos();
-  const { success, error: toastError } = useToast();
-
-  const tmdbIdsNaBase = useMemo(() => new Set(filmes.map((f) => f.tmdbId).filter(Boolean)), [filmes]);
+  const { error: toastError } = useToast();
 
   const recarregarFilmes = useCallback(async () => {
     setFilmesCarregando(true);
     try {
-      const data = await listarFilmes(1, 100);
+      const data = await listarFilmesFeed(1, 100);
       setFilmes(Array.isArray(data) ? data : []);
     } catch {
       setFilmes([]);
@@ -48,6 +35,52 @@ export default function InicioPage() {
       setFilmesCarregando(false);
     }
   }, []);
+
+  const isFavorito = useCallback(
+    (filmeId) =>
+      favoritosLista.some((item) => (item.filme?.id ?? item.filmeId) === filmeId),
+    [favoritosLista],
+  );
+
+  const alternarFavorito = useCallback(
+    async (filmeId) => {
+      const existe = favoritosLista.some(
+        (item) => (item.filme?.id ?? item.filmeId) === filmeId,
+      );
+      if (existe) {
+        await removerFavorito(filmeId);
+        setFavoritosLista((prev) =>
+          prev.filter((item) => (item.filme?.id ?? item.filmeId) !== filmeId),
+        );
+        return;
+      }
+      const criado = await adicionarFavorito(filmeId);
+      const filme =
+        filmes.find((f) => f.id === filmeId) ||
+        (modalFilme?.id === filmeId ? modalFilme : null);
+      if (filme) {
+        setFavoritosLista((prev) => [...prev, { ...criado, filme }]);
+      } else {
+        // Sem objeto no feed/modal: volta a carregar a lista com Include do servidor
+        const data = await listarFavoritos();
+        setFavoritosLista(Array.isArray(data) ? data : []);
+      }
+    },
+    [favoritosLista, filmes, modalFilme],
+  );
+
+  const alternarComAtualizarFeed = useCallback(
+    async (filmeId) => {
+      try {
+        await alternarFavorito(filmeId);
+        await recarregarFilmes();
+      } catch (e) {
+        const msg = e.response?.data?.mensagem ?? e.message;
+        toastError(typeof msg === 'string' ? msg : 'Não foi possível atualizar favoritos.');
+      }
+    },
+    [alternarFavorito, recarregarFilmes, toastError],
+  );
 
   useEffect(() => {
     let ativo = true;
@@ -70,74 +103,45 @@ export default function InicioPage() {
   }, []);
 
   useEffect(() => {
-    recarregarFilmes();
-  }, [recarregarFilmes]);
-
-  useEffect(() => {
-    if (!getTmdbApiKey()) {
-      setTrending([]);
-      setTrendingErro(null);
-      return;
-    }
-    let cancelado = false;
+    let ativo = true;
     (async () => {
-      setTrendingCarregando(true);
-      setTrendingErro(null);
       try {
-        const data = await getTrendingMovies('week');
-        if (!cancelado) setTrending(data.slice(0, 14));
-      } catch (e) {
-        if (!cancelado) setTrendingErro(e.message ?? 'Falha ao carregar tendências');
-      } finally {
-        if (!cancelado) setTrendingCarregando(false);
+        const data = await listarFavoritos();
+        if (ativo) setFavoritosLista(Array.isArray(data) ? data : []);
+      } catch {
+        if (ativo) setFavoritosLista([]);
       }
     })();
     return () => {
-      cancelado = true;
+      ativo = false;
     };
   }, []);
 
-  const abrirModal = useCallback(async (resumo) => {
-    try {
-      const completo = await obterFilme(resumo.id);
-      if (!completo) {
+  useEffect(() => {
+    recarregarFilmes();
+  }, [recarregarFilmes]);
+
+  const abrirModal = useCallback(
+    async (resumo) => {
+      try {
+        const completo = await obterFilme(resumo.id);
+        if (!completo) {
+          toastError('Não foi possível carregar os detalhes do filme.');
+          return;
+        }
+        setModalFilme(completo);
+        setModalAberto(true);
+      } catch {
         toastError('Não foi possível carregar os detalhes do filme.');
-        return;
       }
-      setModalFilme(completo);
-      setModalAberto(true);
-    } catch {
-      toastError('Não foi possível carregar os detalhes do filme.');
-    }
-  }, [toastError]);
+    },
+    [toastError],
+  );
 
   const fecharModal = useCallback(() => {
     setModalAberto(false);
     setModalFilme(null);
   }, []);
-
-  const adicionarTrending = useCallback(
-    async (movie) => {
-      setGravandoTrendingId(movie.id);
-      try {
-        const existente = await obterFilmePorTmdb(movie.id);
-        if (existente) {
-          await recarregarFilmes();
-          success('Já estava na filmoteca.');
-          return;
-        }
-        await upsertFilmeCache(mapTmdbSearchResultToUpsertDto(movie));
-        success('Filme salvo na filmoteca.');
-        await recarregarFilmes();
-      } catch (e) {
-        const msg = e.response?.data?.mensagem ?? e.message;
-        toastError(typeof msg === 'string' ? msg : 'Erro ao gravar.');
-      } finally {
-        setGravandoTrendingId(null);
-      }
-    },
-    [recarregarFilmes, success, toastError],
-  );
 
   const favoritoModal = modalFilme ? isFavorito(modalFilme.id) : false;
 
@@ -153,10 +157,21 @@ export default function InicioPage() {
 
   const filmesOrdenados = useMemo(() => {
     const arr = [...filmesFiltrados];
+    if (ordenacaoFilmo === 'comunidade') {
+      return arr;
+    }
     if (ordenacaoFilmo === 'titulo') {
       arr.sort((a, b) =>
         (a.titulo || '').localeCompare(b.titulo || '', 'pt', { sensitivity: 'base' }),
       );
+    } else if (ordenacaoFilmo === 'recentes') {
+      const ms = (f) => {
+        const raw = f.atualizadoEm ?? f.criadoEm;
+        if (!raw) return 0;
+        const t = new Date(raw).getTime();
+        return Number.isNaN(t) ? 0 : t;
+      };
+      arr.sort((a, b) => ms(b) - ms(a));
     } else if (ordenacaoFilmo === 'estreia') {
       const ms = (f) => {
         if (!f.dataLancamento) return 0;
@@ -171,16 +186,16 @@ export default function InicioPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-3 py-4 sm:px-4 sm:py-6 lg:flex-row lg:gap-8 lg:px-8">
       <div className="min-w-0 flex-1 space-y-6 sm:space-y-8">
-        <section className="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-violet-600 via-violet-700 to-indigo-800 p-4 text-white shadow-lg sm:p-6">
+        <section className="overflow-hidden rounded-2xl border border-rose-100/80 bg-gradient-to-br from-rose-500 via-fuchsia-600 to-indigo-700 p-4 text-white shadow-lg sm:p-6">
           <div className="flex items-start gap-3">
-            <div className="rounded-xl bg-white/15 p-2 backdrop-blur">
-              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
+            <div className="rounded-xl bg-white/20 p-2 backdrop-blur-sm">
+              <MessagesSquare className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg font-bold tracking-tight sm:text-xl">Para ti</h1>
-              <p className="mt-1 max-w-xl text-xs leading-relaxed text-violet-100 sm:text-sm">
-                Tendências da semana no TMDB e os filmes mais recentes na tua filmoteca — estilo feed, como numa rede
-                social de cinéfilos.
+              <h1 className="text-lg font-bold tracking-tight sm:text-xl">Feed da comunidade</h1>
+              <p className="mt-1 max-w-xl text-xs leading-relaxed text-white/90 sm:text-sm">
+                Vê o que já está na nossa base — filmes que alguém guardou nos favoritos — abre um título,
+                comenta e troca ideias como numa rede social de cinéfilos.
               </p>
             </div>
           </div>
@@ -191,54 +206,10 @@ export default function InicioPage() {
         </div>
 
         <section>
-          <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-slate-800 sm:text-lg">
-              <Film className="h-5 w-5 shrink-0 text-violet-600" />
-              <span className="min-w-0">Recomendados · TMDB</span>
-            </h2>
-            <a
-              href="https://www.themoviedb.org/"
-              target="_blank"
-              rel="noreferrer"
-              className="w-fit text-xs text-slate-500 hover:text-violet-600"
-            >
-              Dados © TMDB
-            </a>
-          </div>
-          {!getTmdbApiKey() ? (
-            <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              Para ver recomendações e pesquisar no TMDB, adiciona{' '}
-              <code className="rounded bg-amber-100 px-1">VITE_TMDB_API_KEY</code> ao{' '}
-              <code className="rounded bg-amber-100 px-1">.env.development</code>.
-            </p>
-          ) : trendingCarregando ? (
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-52 w-[140px] flex-shrink-0 animate-pulse rounded-xl bg-slate-200"
-                />
-              ))}
-            </div>
-          ) : trendingErro ? (
-            <p className="text-sm text-red-600">{trendingErro}</p>
-          ) : (
-            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin">
-              {trending.map((m) => (
-                <TmdbTrendingCard
-                  key={m.id}
-                  movie={m}
-                  jaNaBase={tmdbIdsNaBase.has(m.id)}
-                  gravando={gravandoTrendingId === m.id}
-                  onAdicionar={adicionarTrending}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section>
-          <h2 className="mb-3 text-base font-semibold text-slate-800 sm:text-lg">Na filmoteca</h2>
+          <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-slate-800 sm:text-lg">
+            <Film className="h-5 w-5 shrink-0 text-fuchsia-600" />
+            <span className="min-w-0">Filmes na plataforma</span>
+          </h2>
           {filmesCarregando ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -246,14 +217,15 @@ export default function InicioPage() {
               ))}
             </div>
           ) : filmes.length === 0 ? (
-            <p className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
-              Ainda não há filmes. Usa a pesquisa acima para adicionar a partir do TMDB.
+            <p className="rounded-2xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
+              Ainda não há filmes na base. Quando existirem registos (por exemplo após sincronização ou
+              importação), aparecem aqui para todos comentarem.
             </p>
           ) : (
             <>
-              <div className="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:p-3">
+              <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200/90 bg-white p-2 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:p-3">
                 <div
-                  className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+                  className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-0.5"
                   role="group"
                   aria-label="Vista da lista de filmes"
                 >
@@ -263,9 +235,9 @@ export default function InicioPage() {
                     title="Vista em lista"
                     aria-label="Vista em lista"
                     aria-pressed={vistaFilmo === 'lista'}
-                    className={`inline-flex items-center justify-center rounded-md p-2 transition-colors ${
+                    className={`inline-flex items-center justify-center rounded-lg p-2 transition-colors ${
                       vistaFilmo === 'lista'
-                        ? 'bg-white text-violet-700 shadow-sm'
+                        ? 'bg-white text-fuchsia-700 shadow-sm'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
@@ -277,9 +249,9 @@ export default function InicioPage() {
                     title="Vista em grelha"
                     aria-label="Vista em grelha"
                     aria-pressed={vistaFilmo === 'grid'}
-                    className={`inline-flex items-center justify-center rounded-md p-2 transition-colors ${
+                    className={`inline-flex items-center justify-center rounded-lg p-2 transition-colors ${
                       vistaFilmo === 'grid'
-                        ? 'bg-white text-violet-700 shadow-sm'
+                        ? 'bg-white text-fuchsia-700 shadow-sm'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
@@ -287,15 +259,16 @@ export default function InicioPage() {
                   </button>
                 </div>
 
-                <label className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[200px] sm:max-w-[220px]">
+                <label className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[200px] sm:max-w-[240px]">
                   <span className="sr-only">Ordenar por</span>
                   <select
                     value={ordenacaoFilmo}
                     onChange={(e) => setOrdenacaoFilmo(e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/20"
                   >
-                    <option value="recentes">Mais recentes na filmoteca</option>
-                    <option value="estreia">Data de estreia (mais recente)</option>
+                    <option value="comunidade">Popular na comunidade</option>
+                    <option value="recentes">Atualizados recentemente</option>
+                    <option value="estreia">Data de estreia</option>
                     <option value="titulo">Nome (A–Z)</option>
                   </select>
                 </label>
@@ -308,14 +281,14 @@ export default function InicioPage() {
                     onChange={(e) => setFiltroNomeFilmo(e.target.value)}
                     placeholder="Filtrar por nome…"
                     autoComplete="off"
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50/80 py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-500/20"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/80 py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-fuchsia-400 focus:bg-white focus:ring-2 focus:ring-fuchsia-500/20"
                   />
                 </div>
               </div>
 
               {filmesOrdenados.length === 0 ? (
-                <p className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-6 text-center text-sm text-amber-900">
-                  Nenhum filme corresponde ao nome indicado. Limpa o filtro ou experimenta outro termo.
+                <p className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-6 text-center text-sm text-amber-900">
+                  Nenhum filme corresponde ao filtro. Limpa o texto ou experimenta outro termo.
                 </p>
               ) : vistaFilmo === 'grid' ? (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4">
@@ -327,8 +300,9 @@ export default function InicioPage() {
                       posterPath={f.posterPath}
                       dataLancamento={f.dataLancamento}
                       notaMediaTmdb={f.notaMediaTmdb}
+                      totalFavoritos={f.totalFavoritos ?? 0}
                       favorito={isFavorito(f.id)}
-                      onToggleFavorito={() => alternar(f.id)}
+                      onToggleFavorito={() => alternarComAtualizarFeed(f.id)}
                       onOpen={() => abrirModal(f)}
                     />
                   ))}
@@ -343,8 +317,9 @@ export default function InicioPage() {
                       posterPath={f.posterPath}
                       dataLancamento={f.dataLancamento}
                       notaMediaTmdb={f.notaMediaTmdb}
+                      totalFavoritos={f.totalFavoritos ?? 0}
                       favorito={isFavorito(f.id)}
-                      onToggleFavorito={() => alternar(f.id)}
+                      onToggleFavorito={() => alternarComAtualizarFeed(f.id)}
                       onOpen={() => abrirModal(f)}
                     />
                   ))}
@@ -366,18 +341,7 @@ export default function InicioPage() {
         filme={modalFilme}
         favorito={favoritoModal}
         onFechar={fecharModal}
-        onToggleFavorito={
-          modalFilme
-            ? async () => {
-                try {
-                  await alternar(modalFilme.id);
-                } catch (e) {
-                  const msg = e.response?.data?.mensagem ?? e.message;
-                  toastError(typeof msg === 'string' ? msg : 'Não foi possível atualizar favoritos.');
-                }
-              }
-            : undefined
-        }
+        onToggleFavorito={modalFilme ? () => alternarComAtualizarFeed(modalFilme.id) : undefined}
       />
     </div>
   );

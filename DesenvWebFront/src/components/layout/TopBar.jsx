@@ -13,7 +13,7 @@ export default function TopBar({ onOpenNav }) {
         <Menu className="h-6 w-6" />
       </button>
       <p className="hidden min-w-0 truncate text-sm text-slate-500 md:block">
-        Descobre filmes e sincroniza com a tua filmoteca
+        Filmes da base · comenta com a comunidade
       </p>
       <div className="min-w-0 flex-1 md:ml-auto md:max-w-xl">
         <MovieSearch />

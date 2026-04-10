@@ -1,6 +1,5 @@
 using DesenvWebApi.Api.Data;
 using DesenvWebApi.Api.Models;
-using DesenvWebApi.Api.Models.Dtos;
 using DesenvWebApi.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,7 +22,7 @@ public class ComentariosController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<ActionResult<IEnumerable<ComentarioListagemDto>>> PorFilme(
+    public async Task<IActionResult> PorFilme(
         [FromQuery] long filmeId,
         CancellationToken cancellationToken)
     {
@@ -37,7 +36,7 @@ public class ComentariosController : ControllerBase
             }
             catch (UnauthorizedAccessException)
             {
-                // Lista pública: sem marcar SouAutor
+                // Lista pública: sem marcar souAutor
             }
         }
 
@@ -51,18 +50,19 @@ public class ComentariosController : ControllerBase
                 c.Corpo,
                 c.CriadoEm,
                 c.EditadoEm,
-                AutorNome = c.Usuario.NomeExibicao ?? c.Usuario.Email,
+                AutorNome = c.Usuario!.NomeExibicao ?? c.Usuario.Email,
                 c.UsuarioId
             })
             .ToListAsync(cancellationToken);
 
-        var lista = linhas.Select(x => new ComentarioListagemDto
+        // Mantém o mesmo contrato JSON que o front espera (sem classe DTO dedicada)
+        var lista = linhas.Select(x => new
         {
-            Id = x.Id,
-            Corpo = x.Corpo,
-            CriadoEm = x.CriadoEm,
-            EditadoEm = x.EditadoEm,
-            AutorNome = x.AutorNome,
+            x.Id,
+            x.Corpo,
+            x.CriadoEm,
+            x.EditadoEm,
+            x.AutorNome,
             SouAutor = meuUsuarioId.HasValue && x.UsuarioId == meuUsuarioId.Value
         }).ToList();
 
@@ -71,14 +71,14 @@ public class ComentariosController : ControllerBase
 
     [Authorize]
     [HttpPost]
-    public async Task<ActionResult<ComentarioListagemDto>> Criar(
-        [FromBody] ComentarioCriarDto dto,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> Criar([FromBody] Comentario entrada, CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
+        if (entrada.FilmeId <= 0)
+            return BadRequest(new { mensagem = "FilmeId inválido." });
+        if (string.IsNullOrWhiteSpace(entrada.Corpo))
+            return BadRequest(new { mensagem = "O texto do comentário é obrigatório." });
 
-        var existeFilme = await _db.Filmes.AnyAsync(f => f.Id == dto.FilmeId, cancellationToken);
+        var existeFilme = await _db.Filmes.AnyAsync(f => f.Id == entrada.FilmeId, cancellationToken);
         if (!existeFilme)
             return BadRequest(new { mensagem = "Filme não encontrado." });
 
@@ -87,32 +87,32 @@ public class ComentariosController : ControllerBase
         var comentario = new Comentario
         {
             UsuarioId = usuario.Id,
-            FilmeId = dto.FilmeId,
-            Corpo = dto.Corpo.Trim(),
+            FilmeId = entrada.FilmeId,
+            Corpo = entrada.Corpo.Trim(),
             Visivel = true
         };
         _db.Comentarios.Add(comentario);
         await _db.SaveChangesAsync(cancellationToken);
 
-        var resposta = new ComentarioListagemDto
+        var resposta = new
         {
-            Id = comentario.Id,
-            Corpo = comentario.Corpo,
-            CriadoEm = comentario.CriadoEm,
-            EditadoEm = comentario.EditadoEm,
+            comentario.Id,
+            comentario.Corpo,
+            comentario.CriadoEm,
+            comentario.EditadoEm,
             AutorNome = usuario.NomeExibicao ?? usuario.Email,
             SouAutor = true
         };
 
-        return CreatedAtAction(nameof(PorFilme), new { filmeId = dto.FilmeId }, resposta);
+        return CreatedAtAction(nameof(PorFilme), new { filmeId = entrada.FilmeId }, resposta);
     }
 
     [Authorize]
     [HttpPut("{id:long}")]
-    public async Task<IActionResult> Editar(long id, [FromBody] ComentarioEdicaoDto dto, CancellationToken cancellationToken)
+    public async Task<IActionResult> Editar(long id, [FromBody] Comentario entrada, CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
+        if (string.IsNullOrWhiteSpace(entrada.Corpo))
+            return BadRequest(new { mensagem = "O texto do comentário é obrigatório." });
 
         var usuario = await _usuarios.GarantirUsuarioAsync(User, cancellationToken);
 
@@ -120,9 +120,9 @@ public class ComentariosController : ControllerBase
             c => c.Id == id && c.UsuarioId == usuario.Id,
             cancellationToken);
         if (comentario is null)
-            return NotFound();
+            return NotFound(new { mensagem = "Comentário não encontrado." });
 
-        comentario.Corpo = dto.Corpo.Trim();
+        comentario.Corpo = entrada.Corpo.Trim();
         await _db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -137,7 +137,7 @@ public class ComentariosController : ControllerBase
             c => c.Id == id && c.UsuarioId == usuario.Id,
             cancellationToken);
         if (comentario is null)
-            return NotFound();
+            return NotFound(new { mensagem = "Comentário não encontrado." });
 
         _db.Comentarios.Remove(comentario);
         await _db.SaveChangesAsync(cancellationToken);

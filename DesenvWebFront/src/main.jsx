@@ -2,11 +2,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { ToastProvider } from './contexts/ToastContext';
-import { KeycloakProvider } from './contexts/KeycloakContext';
-import ToastContainer from './components/ui/ToastContainer';
+import { ToastContainer } from 'react-toastify';
 import App from './App.jsx';
 import { createKeycloakClient } from './keycloak';
+import 'react-toastify/dist/ReactToastify.css';
 import './index.css';
 
 const keycloak = createKeycloakClient();
@@ -24,14 +23,10 @@ keycloak
     if (!authenticated) return;
     createRoot(document.getElementById('root')).render(
       <StrictMode>
-        <KeycloakProvider client={keycloak}>
           <BrowserRouter>
-            <ToastProvider>
-              <App />
-              <ToastContainer />
-            </ToastProvider>
+            <App />
+            <ToastContainer position="top-right" autoClose={3000} />
           </BrowserRouter>
-        </KeycloakProvider>
       </StrictMode>,
     );
   })

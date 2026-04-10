@@ -5,9 +5,31 @@ export async function listarFilmes(pagina = 1, tamanho = 20) {
   return data;
 }
 
+/**
+ * Filmes na plataforma com totalFavoritos (GET /filmes/feed).
+ * Se o feed não existir (API antiga) ou falhar, usa GET /filmes para o feed continuar a funcionar.
+ */
+export async function listarFilmesFeed(pagina = 1, tamanho = 100) {
+  try {
+    const { data, status } = await api.get('/filmes/feed', { params: { pagina, tamanho } });
+    if (status === 200 && Array.isArray(data)) return data;
+  } catch (e) {
+    const code = e.response?.status;
+    if (code != null && code !== 404 && code !== 405) throw e;
+  }
+  const { data } = await api.get('/filmes', { params: { pagina, tamanho } });
+  const arr = Array.isArray(data) ? data : [];
+  return arr.map((f) => ({
+    ...f,
+    totalFavoritos: Number(f.totalFavoritos) || 0,
+  }));
+}
+
 export async function buscarFilmesLocais(q) {
-  const { data } = await api.get('/filmes/buscar', { params: { q } });
-  return data;
+  const termo = (q == null ? '' : String(q)).trim();
+  if (termo.length < 2) return [];
+  const { data } = await api.get('/filmes/buscar', { params: { q: termo } });
+  return Array.isArray(data) ? data : [];
 }
 
 export async function obterFilme(id) {
@@ -31,8 +53,8 @@ export async function upsertFilmeCache(payload) {
   return data;
 }
 
-/** Mapeia um item da API search/movie do TMDB para o DTO da API .NET (camelCase). */
-export function mapTmdbSearchResultToUpsertDto(movie) {
+/** Mapeia um item da API search/movie do TMDB para o modelo Filme da API .NET (camelCase). */
+export function mapTmdbSearchResultToFilme(movie) {
   const release = movie.release_date?.length >= 10 ? movie.release_date.slice(0, 10) : null;
   return {
     tmdbId: movie.id,

@@ -1,7 +1,6 @@
 // src/components/layout/Layout.jsx
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { FavoritosProvider } from '../../contexts/FavoritosContext';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 
@@ -18,7 +17,6 @@ function Layout() {
   }, [mobileNavOpen]);
 
   return (
-    <FavoritosProvider>
       <div className="flex min-h-0 h-[100dvh] bg-slate-100">
         {mobileNavOpen ? (
           <button
@@ -36,7 +34,6 @@ function Layout() {
           </main>
         </div>
       </div>
-    </FavoritosProvider>
   );
 }
 

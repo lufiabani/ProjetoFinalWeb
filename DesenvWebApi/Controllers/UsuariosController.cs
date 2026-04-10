@@ -18,23 +18,22 @@ public class UsuariosController : ControllerBase
     /// <summary>Garante o registo local do utilizador (Keycloak) e devolve o perfil.</summary>
     [Authorize]
     [HttpGet("me")]
-    [ProducesResponseType(typeof(UsuarioPerfilResponse), StatusCodes.Status200OK)]
-    public async Task<ActionResult<UsuarioPerfilResponse>> GetMe(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetMe(CancellationToken cancellationToken)
     {
         try
         {
             var usuario = await _usuarios.GarantirUsuarioAsync(User, cancellationToken);
-            return Ok(new UsuarioPerfilResponse(
+            return Ok(new
+            {
                 usuario.Id,
                 usuario.KeycloakSub,
                 usuario.Email,
-                usuario.NomeExibicao));
+                usuario.NomeExibicao
+            });
         }
         catch (UnauthorizedAccessException)
         {
             return Unauthorized();
         }
     }
-
-    public record UsuarioPerfilResponse(long Id, string KeycloakSub, string? Email, string? NomeExibicao);
 }

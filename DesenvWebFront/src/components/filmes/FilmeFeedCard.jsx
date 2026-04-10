@@ -1,4 +1,4 @@
-import { Heart, Star } from 'lucide-react';
+import { Heart, Star, Users } from 'lucide-react';
 import { posterUrl as tmdbPoster } from '../../services/tmdb';
 
 function ano(dataLancamento) {
@@ -14,6 +14,7 @@ export default function FilmeFeedCard({
   posterPath,
   dataLancamento,
   notaMediaTmdb,
+  totalFavoritos = 0,
   favorito,
   onToggleFavorito,
   onOpen,
@@ -48,6 +49,12 @@ export default function FilmeFeedCard({
               <span className="inline-flex items-center gap-0.5 text-amber-600">
                 <Star className="w-3.5 h-3.5 fill-current" />
                 {Number(notaMediaTmdb).toFixed(1)}
+              </span>
+            ) : null}
+            {totalFavoritos > 0 ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                <Users className="w-3.5 h-3.5" />
+                {totalFavoritos === 1 ? '1 pessoa guardou' : `${totalFavoritos} guardaram`}
               </span>
             ) : null}
           </div>

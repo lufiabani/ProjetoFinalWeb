@@ -248,8 +248,11 @@ export default function FilmeDetalheModal({
                 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500"
               >
                 <MessageCircle className="w-4 h-4" />
-                Comentários
+                Discussão
               </h3>
+              <p className="mt-1 text-xs text-slate-400">
+                Comentários visíveis para toda a comunidade com sessão iniciada.
+              </p>
 
               {comentariosCarregando ? (
                 <div className="mt-4 space-y-3">

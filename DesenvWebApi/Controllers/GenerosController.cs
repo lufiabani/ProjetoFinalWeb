@@ -1,6 +1,5 @@
 using DesenvWebApi.Api.Data;
 using DesenvWebApi.Api.Models;
-using DesenvWebApi.Api.Models.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,12 +19,11 @@ public class GenerosController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<ActionResult<IEnumerable<GeneroRespostaDto>>> Listar(CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<Genero>>> Listar(CancellationToken cancellationToken)
     {
         var lista = await _db.Generos
             .AsNoTracking()
             .OrderBy(g => g.Nome)
-            .Select(g => new GeneroRespostaDto { Id = g.Id, TmdbId = g.TmdbId, Nome = g.Nome })
             .ToListAsync(cancellationToken);
 
         return Ok(lista);
@@ -34,22 +32,25 @@ public class GenerosController : ControllerBase
     /// <summary>Sincroniza géneros (ex.: lista /genre/movie do TMDB).</summary>
     [Authorize]
     [HttpPost("sync")]
-    public async Task<ActionResult> Sincronizar([FromBody] List<GeneroSyncDto> itens, CancellationToken cancellationToken)
+    public async Task<IActionResult> Sincronizar([FromBody] List<Genero> itens, CancellationToken cancellationToken)
     {
         if (itens is null || itens.Count == 0)
             return BadRequest(new { mensagem = "Envie uma lista não vazia." });
 
         foreach (var item in itens)
         {
+            if (item.TmdbId <= 0 || string.IsNullOrWhiteSpace(item.Nome))
+                return BadRequest(new { mensagem = "Cada género precisa de TmdbId e Nome válidos." });
+
             var genero = await _db.Generos.FirstOrDefaultAsync(g => g.TmdbId == item.TmdbId, cancellationToken);
             if (genero is null)
             {
-                genero = new Genero { TmdbId = item.TmdbId, Nome = item.Nome };
+                genero = new Genero { TmdbId = item.TmdbId, Nome = item.Nome.Trim() };
                 _db.Generos.Add(genero);
             }
             else
             {
-                genero.Nome = item.Nome;
+                genero.Nome = item.Nome.Trim();
             }
         }
 
