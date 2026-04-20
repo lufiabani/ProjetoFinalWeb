@@ -1,10 +1,12 @@
 // Sidebar.jsx — navegação principal e saída Keycloak (logout com redirect para a origem).
 import { NavLink } from 'react-router-dom';
-import { Film, Home, LogOut, ArrowDownToLine, X } from 'lucide-react';
+import { Home, LogOut, ArrowDownToLine, X, Bookmark } from 'lucide-react';
 import { getKeycloak } from '../../keycloak';
+import BrandLogo from './BrandLogo';
 
 const menuItems = [
   { to: '/inicio', label: 'Início', icon: Home },
+  { to: '/meus-filmes', label: 'Os meus filmes', icon: Bookmark },
   { to: '/importar', label: 'Importar filmes', icon: ArrowDownToLine },
 ];
 
@@ -23,24 +25,29 @@ function Sidebar({ mobileOpen, onClose }) {
         mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}
     >
-      <div className="flex items-start justify-between gap-2 border-b border-gray-700 px-4 py-4 sm:px-6 sm:py-5">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500 to-fuchsia-600">
-            <Film className="h-5 w-5 text-white" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-lg font-bold leading-tight">CataneoFilmes</h1>
-            <p className="text-xs text-gray-400">Favoritos e comentários</p>
-          </div>
-        </div>
+      <div className="relative border-b border-gray-700 px-4 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
         <button
           type="button"
           onClick={fecharSeMobile}
-          className="rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white lg:hidden"
+          className="absolute right-2 top-4 z-10 rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white lg:hidden"
           aria-label="Fechar menu"
         >
           <X className="h-5 w-5" />
         </button>
+        <NavLink
+          to="/inicio"
+          onClick={fecharSeMobile}
+          className="flex w-full justify-center outline-none ring-offset-2 ring-offset-gray-900 focus-visible:ring-2 focus-visible:ring-fuchsia-400"
+          title="Ir para o início"
+        >
+          <BrandLogo
+            className="max-h-[4.25rem] w-auto max-w-[11.5rem] object-contain object-center"
+            roundedClassName="rounded-2xl"
+          />
+        </NavLink>
+        <p className="mt-3 text-center text-xs leading-snug text-gray-400">
+          Notas TMDB, comentários e favoritos na comunidade.
+        </p>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">

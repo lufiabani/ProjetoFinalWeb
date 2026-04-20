@@ -26,7 +26,7 @@ dotnet ef database update
 | GET | `/api/usuarios/me` | Sim | Perfil local + sync Keycloak |
 | GET | `/api/filmes` | Não | Lista paginada (cache) |
 | GET | `/api/filmes/{id}` | Não | Detalhe por ID interno |
-| GET | `/api/filmes/tmdb/{tmdbId}` | Não | Detalhe por TMDB |
+| GET | `/api/filmes/tmdb/{tmdbId}` | Não | Cache por TMDB; `null` se ainda não importado (HTTP 200) |
 | POST | `/api/filmes/cache` | Sim | Cria/atualiza filme no cache |
 | GET | `/api/favoritos` | Sim | Favoritos do utilizador |
 | POST | `/api/favoritos` | Sim | Corpo: `{ "filmeId": n }` |

@@ -1,10 +1,14 @@
 // InicioPage.jsx — orquestra o feed (filmes na plataforma), favoritos, perfil e modal de detalhe/comentários.
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { MessagesSquare, Film, LayoutList, LayoutGrid, Search } from 'lucide-react';
+import { Film, LayoutList, LayoutGrid, Search, Quote, Sparkles } from 'lucide-react';
 import { api } from '../../services/api';
 import { listarFilmesFeed, obterFilme } from '../../services/filmesService';
 import { adicionarFavorito, listarFavoritos, removerFavorito } from '../../services/favoritosService';
+import { listarGeneros } from '../../services/generoService';
+import { listarComentariosDestaque } from '../../services/comentariosService';
+import { posterUrl as posterTmdb } from '../../services/tmdb';
 import { useToast } from '../../hooks/useToast';
+import BrandLogo from '../layout/BrandLogo';
 import FilmeFeedCard from '../filmes/FilmeFeedCard';
 import FilmeGridCard from '../filmes/FilmeGridCard';
 import FilmeDetalheModal from '../filmes/FilmeDetalheModal';
@@ -21,6 +25,10 @@ export default function InicioPage() {
   const [vistaFilmo, setVistaFilmo] = useState('lista');
   const [ordenacaoFilmo, setOrdenacaoFilmo] = useState('comunidade');
   const [filtroNomeFilmo, setFiltroNomeFilmo] = useState('');
+  const [generos, setGeneros] = useState([]);
+  const [generoFiltroId, setGeneroFiltroId] = useState('');
+  const [comentariosDestaque, setComentariosDestaque] = useState([]);
+  const [comentariosCarregando, setComentariosCarregando] = useState(true);
   // Favoritos com Filme incluído (GET /api/favoritos) — estado local, sem Redux/contexto extra.
   const [favoritosLista, setFavoritosLista] = useState([]);
 
@@ -124,6 +132,39 @@ export default function InicioPage() {
     recarregarFilmes();
   }, [recarregarFilmes]);
 
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      try {
+        const data = await listarGeneros();
+        if (ativo) setGeneros(Array.isArray(data) ? data : []);
+      } catch {
+        if (ativo) setGeneros([]);
+      }
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      setComentariosCarregando(true);
+      try {
+        const data = await listarComentariosDestaque(12);
+        if (ativo) setComentariosDestaque(Array.isArray(data) ? data : []);
+      } catch {
+        if (ativo) setComentariosDestaque([]);
+      } finally {
+        if (ativo) setComentariosCarregando(false);
+      }
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
   const abrirModal = useCallback(
     async (resumo) => {
       try {
@@ -146,17 +187,38 @@ export default function InicioPage() {
     setModalFilme(null);
   }, []);
 
+  const abrirModalPorId = useCallback(
+    async (filmeId) => {
+      try {
+        const completo = await obterFilme(filmeId);
+        if (!completo) {
+          toastError('Não foi possível carregar os detalhes do filme.');
+          return;
+        }
+        setModalFilme(completo);
+        setModalAberto(true);
+      } catch {
+        toastError('Não foi possível carregar os detalhes do filme.');
+      }
+    },
+    [toastError],
+  );
+
   const favoritoModal = modalFilme ? isFavorito(modalFilme.id) : false;
 
   const filmesFiltrados = useMemo(() => {
     const q = filtroNomeFilmo.trim().toLowerCase();
-    if (!q) return filmes;
-    return filmes.filter((f) => {
+    const porGenero =
+      generoFiltroId === ''
+        ? filmes
+        : filmes.filter((f) => String(f.generoId ?? '') === String(generoFiltroId));
+    if (!q) return porGenero;
+    return porGenero.filter((f) => {
       const t = (f.titulo ?? '').toLowerCase();
       const o = (f.tituloOriginal ?? f.filmeDescricao?.tituloOriginal ?? '').toLowerCase();
       return t.includes(q) || o.includes(q);
     });
-  }, [filmes, filtroNomeFilmo]);
+  }, [filmes, filtroNomeFilmo, generoFiltroId]);
 
   const filmesOrdenados = useMemo(() => {
     const arr = [...filmesFiltrados];
@@ -182,6 +244,13 @@ export default function InicioPage() {
         return Number.isNaN(t) ? 0 : t;
       };
       arr.sort((a, b) => ms(b) - ms(a));
+    } else if (ordenacaoFilmo === 'notaTmdb') {
+      const n = (f) => {
+        const v = f.notaMediaTmdb ?? f.filmeDescricao?.notaMediaTmdb;
+        if (v == null || Number.isNaN(Number(v))) return -1;
+        return Number(v);
+      };
+      arr.sort((a, b) => n(b) - n(a));
     }
     return arr;
   }, [filmesFiltrados, ordenacaoFilmo]);
@@ -189,19 +258,88 @@ export default function InicioPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-3 py-4 sm:px-4 sm:py-6 lg:flex-row lg:gap-8 lg:px-8">
       <div className="min-w-0 flex-1 space-y-6 sm:space-y-8">
-        <section className="overflow-hidden rounded-2xl border border-rose-100/80 bg-gradient-to-br from-rose-500 via-fuchsia-600 to-indigo-700 p-4 text-white shadow-lg sm:p-6">
-          <div className="flex items-start gap-3">
-            <div className="rounded-xl bg-white/20 p-2 backdrop-blur-sm">
-              <MessagesSquare className="h-5 w-5 sm:h-6 sm:w-6" />
+        <section className="overflow-hidden rounded-2xl border border-rose-100/80 bg-gradient-to-br from-rose-500 via-fuchsia-600 to-indigo-700 p-5 text-white shadow-lg sm:p-8">
+          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-stretch sm:gap-8 sm:py-1">
+            <div className="flex w-full shrink-0 justify-center sm:w-auto sm:justify-start">
+              <div className="rounded-3xl bg-white p-3 shadow-xl ring-2 ring-white/60 sm:p-4">
+                <BrandLogo
+                  className="max-h-[7.5rem] w-auto max-w-[min(18rem,85vw)] object-contain sm:max-h-[8.5rem] sm:max-w-[20rem]"
+                  roundedClassName="rounded-2xl"
+                />
+              </div>
             </div>
-            <div className="min-w-0">
-              <h1 className="text-lg font-bold tracking-tight sm:text-xl">Feed da comunidade</h1>
-              <p className="mt-1 max-w-xl text-xs leading-relaxed text-white/90 sm:text-sm">
-                Vê o que já está na nossa base — filmes que alguém guardou nos favoritos — abre um título,
-                comenta e troca ideias como numa rede social de cinéfilos.
+            <div className="flex min-w-0 flex-1 flex-col justify-center gap-4 text-center sm:text-left">
+              <p className="text-sm font-medium leading-relaxed text-white/95 sm:text-base">
+                Explora títulos na base, compara a nota TMDB com o burburinho da comunidade e deixa o teu comentário
+                nos filmes que te marcam.
               </p>
+              <div className="flex flex-wrap items-center justify-center gap-2 rounded-2xl bg-black/15 px-3 py-2.5 text-xs text-white/95 ring-1 ring-white/25 sm:justify-start sm:text-sm">
+                <Sparkles className="h-4 w-4 shrink-0 text-amber-200" />
+                <span>
+                  Dica: ordena por <span className="font-semibold">Melhor nota TMDB</span> ou filtra por género para
+                  afinar a tua descoberta.
+                </span>
+              </div>
             </div>
           </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-slate-800 sm:text-lg">
+              <Quote className="h-5 w-5 shrink-0 text-fuchsia-600" />
+              Comentários em destaque
+            </h2>
+            <span className="text-xs text-slate-500">Os mais recentes na plataforma</span>
+          </div>
+          {comentariosCarregando ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-28 animate-pulse rounded-xl bg-slate-100" />
+              ))}
+            </div>
+          ) : comentariosDestaque.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
+              Ainda não há comentários públicos. Sê o primeiro a partilhar uma opinião num filme.
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {comentariosDestaque.map((c) => {
+                const data = c.criadoEm ? new Date(c.criadoEm) : null;
+                const dataTxt =
+                  data && !Number.isNaN(data.getTime())
+                    ? data.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })
+                    : '';
+                const poster = posterTmdb(c.posterPath, 'w92');
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => abrirModalPorId(c.filmeId)}
+                    className="flex gap-3 rounded-xl border border-slate-200/90 bg-slate-50/80 p-3 text-left transition hover:border-fuchsia-200 hover:bg-white hover:shadow-sm"
+                  >
+                    <div className="relative h-16 w-11 flex-shrink-0 overflow-hidden rounded-lg bg-slate-200">
+                      {poster ? (
+                        <img src={poster} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[10px] text-slate-500">
+                          Sem capa
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-fuchsia-700">{c.tituloFilme}</p>
+                      <p className="mt-1 line-clamp-3 text-sm text-slate-800">{c.corpo}</p>
+                      <p className="mt-2 text-xs text-slate-500">
+                        <span className="font-medium text-slate-700">{c.autorNome}</span>
+                        {dataTxt ? <span> · {dataTxt}</span> : null}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         <div className="lg:hidden">
@@ -270,9 +408,26 @@ export default function InicioPage() {
                     className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/20"
                   >
                     <option value="comunidade">Popular na comunidade</option>
+                    <option value="notaTmdb">Melhor nota TMDB</option>
                     <option value="recentes">Atualizados recentemente</option>
                     <option value="estreia">Data de estreia</option>
                     <option value="titulo">Nome (A–Z)</option>
+                  </select>
+                </label>
+
+                <label className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[180px] sm:max-w-[220px]">
+                  <span className="sr-only">Género</span>
+                  <select
+                    value={generoFiltroId}
+                    onChange={(e) => setGeneroFiltroId(e.target.value)}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-500/20"
+                  >
+                    <option value="">Todos os géneros</option>
+                    {generos.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.nome}
+                      </option>
+                    ))}
                   </select>
                 </label>
 
@@ -303,7 +458,9 @@ export default function InicioPage() {
                       posterPath={f.posterPath}
                       dataLancamento={f.dataLancamento}
                       notaMediaTmdb={f.notaMediaTmdb}
+                      totalVotosTmdb={f.totalVotosTmdb}
                       totalFavoritos={f.totalFavoritos ?? 0}
+                      generoNome={f.generoNome}
                       favorito={isFavorito(f.id)}
                       onToggleFavorito={() => alternarComAtualizarFeed(f.id)}
                       onOpen={() => abrirModal(f)}
@@ -320,7 +477,9 @@ export default function InicioPage() {
                       posterPath={f.posterPath}
                       dataLancamento={f.dataLancamento}
                       notaMediaTmdb={f.notaMediaTmdb}
+                      totalVotosTmdb={f.totalVotosTmdb}
                       totalFavoritos={f.totalFavoritos ?? 0}
+                      generoNome={f.generoNome}
                       favorito={isFavorito(f.id)}
                       onToggleFavorito={() => alternarComAtualizarFeed(f.id)}
                       onOpen={() => abrirModal(f)}

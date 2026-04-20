@@ -23,6 +23,8 @@ export async function listarFilmesFeed(pagina = 1, tamanho = 100) {
     // GET /filmes devolve descrição aninhada; o feed usa campos planos — alinhamos para os cards.
     tituloOriginal: f.tituloOriginal ?? f.filmeDescricao?.tituloOriginal ?? null,
     notaMediaTmdb: f.notaMediaTmdb ?? f.filmeDescricao?.notaMediaTmdb ?? null,
+    totalVotosTmdb: f.totalVotosTmdb ?? f.filmeDescricao?.totalVotosTmdb ?? null,
+    generoNome: f.generoNome ?? f.genero?.nome ?? null,
     totalFavoritos: Number(f.totalFavoritos) || 0,
   }));
 }
@@ -40,11 +42,11 @@ export async function obterFilme(id) {
   return data;
 }
 
-// GET /api/filmes/tmdb/{id}; 404 → null (filme ainda não importado), outros erros propagam.
+// GET /api/filmes/tmdb/{id}; resposta 200 com JSON null = ainda não está no cache (API antiga podia devolver 404).
 export async function obterFilmePorTmdb(tmdbId) {
   try {
     const { data } = await api.get(`/filmes/tmdb/${tmdbId}`);
-    return data;
+    return data ?? null;
   } catch (e) {
     if (e.response?.status === 404) return null;
     throw e;

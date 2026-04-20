@@ -129,9 +129,9 @@ public class FilmesController : ControllerBase
         return Ok(filme);
     }
 
-    // GET /api/filmes/tmdb/{tmdbId} — útil na importação para saber se o TMDB já existe na base.
+    // GET /api/filmes/tmdb/{tmdbId} — importação verifica duplicados; ausência na base é situação normal (não usamos 404 para não poluir a consola do browser).
     [HttpGet("tmdb/{tmdbId:int}")]
-    public async Task<ActionResult<Filme>> ObterPorTmdb(int tmdbId, CancellationToken cancellationToken)
+    public async Task<ActionResult<Filme?>> ObterPorTmdb(int tmdbId, CancellationToken cancellationToken)
     {
         var filme = await _db.Filmes
             .AsNoTracking()
@@ -140,7 +140,7 @@ public class FilmesController : ControllerBase
             .FirstOrDefaultAsync(f => f.TmdbId == tmdbId, cancellationToken);
 
         if (filme is null)
-            return NotFound(new { mensagem = $"Filme com TMDB ID {tmdbId} não encontrado." });
+            return Ok((Filme?)null);
         return Ok(filme);
     }
 

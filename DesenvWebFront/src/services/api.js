@@ -4,9 +4,9 @@ import { getKeycloak } from '../keycloak';
 
 const baseURL = `${import.meta.env.VITE_API_URL ?? 'http://localhost:5113'}/api`;
 
+// Sem Content-Type global: GET com "application/json" força preflight CORS e o Safari acusa "access control checks".
 export const api = axios.create({
   baseURL,
-  headers: { 'Content-Type': 'application/json' },
 });
 
 // Renova o JWT se estiver perto de expirar (60s) antes de chamar a API — evita 401 intermitentes.

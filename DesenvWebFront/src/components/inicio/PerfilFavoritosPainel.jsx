@@ -1,4 +1,5 @@
 // PerfilFavoritosPainel.jsx — resumo da sessão e atalhos aos favoritos (scroll até ao card no feed).
+import { Link } from 'react-router-dom';
 import { User } from 'lucide-react';
 
 export default function PerfilFavoritosPainel({ perfil, perfilErro, favoritosLista }) {
@@ -52,6 +53,14 @@ export default function PerfilFavoritosPainel({ perfil, perfilErro, favoritosLis
             ))}
           </ul>
         )}
+        <div className="mt-4 border-t border-slate-100 pt-3">
+          <Link
+            to="/meus-filmes"
+            className="inline-flex w-full items-center justify-center rounded-xl bg-fuchsia-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-fuchsia-700"
+          >
+            Ver todos os meus filmes
+          </Link>
+        </div>
       </div>
     </div>
   );

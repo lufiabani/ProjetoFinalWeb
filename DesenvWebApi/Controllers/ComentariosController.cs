@@ -71,6 +71,36 @@ public class ComentariosController : ControllerBase
         return Ok(lista);
     }
 
+    // GET /api/comentarios/destaque — comentários recentes na plataforma (com título do filme) para o feed inicial.
+    [HttpGet("destaque")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ListarDestaque(
+        [FromQuery] int limite = 12,
+        CancellationToken cancellationToken = default)
+    {
+        if (limite < 1) limite = 1;
+        if (limite > 40) limite = 40;
+
+        var linhas = await _db.Comentarios
+            .AsNoTracking()
+            .Where(c => c.Visivel)
+            .OrderByDescending(c => c.CriadoEm)
+            .Take(limite)
+            .Select(c => new
+            {
+                c.Id,
+                c.FilmeId,
+                TituloFilme = c.Filme!.Titulo,
+                PosterPath = c.Filme.PosterPath,
+                c.Corpo,
+                c.CriadoEm,
+                AutorNome = c.Usuario!.NomeExibicao ?? c.Usuario.Email
+            })
+            .ToListAsync(cancellationToken);
+
+        return Ok(linhas);
+    }
+
     // POST /api/comentarios — associa ao utilizador da sessão e devolve o mesmo formato da listagem.
     [Authorize]
     [HttpPost]

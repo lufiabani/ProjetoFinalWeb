@@ -9,13 +9,23 @@ function ano(dataLancamento) {
   return /^\d{4}$/.test(y) ? y : null;
 }
 
+function rotularVotosTmdb(total) {
+  if (total == null || Number.isNaN(Number(total))) return null;
+  const n = Number(total);
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
+  return String(n);
+}
+
 export default function FilmeFeedCard({
   filmeId,
   titulo,
   posterPath,
   dataLancamento,
   notaMediaTmdb,
+  totalVotosTmdb,
   totalFavoritos = 0,
+  generoNome,
   favorito,
   onToggleFavorito,
   onOpen,
@@ -46,10 +56,18 @@ export default function FilmeFeedCard({
           </h3>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500 sm:text-sm">
             {ano(dataLancamento) ? <span>{ano(dataLancamento)}</span> : null}
+            {generoNome ? (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                {generoNome}
+              </span>
+            ) : null}
             {notaMediaTmdb != null ? (
-              <span className="inline-flex items-center gap-0.5 text-amber-600">
-                <Star className="w-3.5 h-3.5 fill-current" />
-                {Number(notaMediaTmdb).toFixed(1)}
+              <span className="inline-flex items-center gap-1 text-amber-700" title="Média de votos no TMDB">
+                <Star className="h-3.5 w-3.5 fill-current" />
+                <span className="font-semibold">{Number(notaMediaTmdb).toFixed(1)}</span>
+                {rotularVotosTmdb(totalVotosTmdb) ? (
+                  <span className="font-normal text-slate-500">({rotularVotosTmdb(totalVotosTmdb)} votos)</span>
+                ) : null}
               </span>
             ) : null}
             {totalFavoritos > 0 ? (

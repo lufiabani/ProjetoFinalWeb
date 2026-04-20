@@ -6,6 +6,12 @@ export async function listarComentariosPorFilme(filmeId) {
   return Array.isArray(data) ? data : [];
 }
 
+// GET /api/comentarios/destaque — comentários recentes com dados do filme (feed inicial).
+export async function listarComentariosDestaque(limite = 12) {
+  const { data } = await api.get('/comentarios/destaque', { params: { limite } });
+  return Array.isArray(data) ? data : [];
+}
+
 export async function criarComentario(payload) {
   const { data } = await api.post('/comentarios', {
     filmeId: Number(payload.filmeId),

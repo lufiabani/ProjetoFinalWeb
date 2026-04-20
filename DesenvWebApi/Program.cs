@@ -66,24 +66,30 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// CORS permissivo para o SPA em desenvolvimento (Vite noutra origem/porta).
+// CORS: reflete a origem do SPA (localhost, qualquer porta) — compatível com Authorization e melhor que * no Safari.
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirTudo", policy =>
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(static origin =>
+            {
+                if (string.IsNullOrWhiteSpace(origin)) return true;
+                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
+                if (uri.Scheme != "http" && uri.Scheme != "https") return false;
+                return uri.Host is "localhost" or "127.0.0.1" or "[::1]";
+            })
             .AllowAnyMethod()
             .AllowAnyHeader());
 });
 
 var app = builder.Build();
 
+app.UseCors("PermitirTudo");
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-app.UseCors("PermitirTudo");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

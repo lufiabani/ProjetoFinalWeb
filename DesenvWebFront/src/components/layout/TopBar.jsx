@@ -1,10 +1,12 @@
-// TopBar.jsx — barra fixa com menu mobile e pesquisa rápida de filmes já na base.
+// TopBar.jsx — barra fixa: menu mobile, marca (logo) e pesquisa na base.
+import { Link } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import MovieSearch from '../filmes/MovieSearch';
+import BrandLogo from './BrandLogo';
 
 export default function TopBar({ onOpenNav }) {
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-slate-200/80 bg-white/90 px-2 backdrop-blur-md sm:gap-3 sm:px-4">
+    <header className="sticky top-0 z-30 flex h-[3.25rem] shrink-0 items-center gap-2 border-b border-slate-200/80 bg-white/90 px-2 backdrop-blur-md sm:h-14 sm:gap-3 sm:px-4">
       <button
         type="button"
         onClick={onOpenNav}
@@ -13,8 +15,18 @@ export default function TopBar({ onOpenNav }) {
       >
         <Menu className="h-6 w-6" />
       </button>
-      <p className="hidden min-w-0 truncate text-sm text-slate-500 md:block">
-        Filmes da base · comenta com a comunidade
+      <Link
+        to="/inicio"
+        className="hidden shrink-0 rounded-lg py-1 outline-none ring-offset-2 ring-offset-white focus-visible:ring-2 focus-visible:ring-fuchsia-500 md:block"
+        title="Início"
+      >
+        <BrandLogo
+          className="max-h-9 w-auto max-w-[9rem] object-contain object-left sm:max-h-10"
+          roundedClassName="rounded-xl"
+        />
+      </Link>
+      <p className="hidden min-w-0 truncate text-xs text-slate-500 lg:block lg:max-w-[10rem] xl:max-w-none">
+        Partilha opiniões sobre o que vês na comunidade.
       </p>
       <div className="min-w-0 flex-1 md:ml-auto md:max-w-xl">
         <MovieSearch />
