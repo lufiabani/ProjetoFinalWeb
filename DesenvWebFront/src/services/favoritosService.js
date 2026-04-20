@@ -1,3 +1,4 @@
+// CRUD mínimo de favoritos do utilizador autenticado (filme tem de existir na base antes).
 import { api } from './api';
 
 export async function listarFavoritos() {

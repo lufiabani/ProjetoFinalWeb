@@ -1,3 +1,4 @@
+// FilmeFeedCard.jsx — cartão em lista (feed) com âncora id=filme-{id} para pesquisa e painel de favoritos.
 import { Heart, Star, Users } from 'lucide-react';
 import { posterUrl as tmdbPoster } from '../../services/tmdb';
 

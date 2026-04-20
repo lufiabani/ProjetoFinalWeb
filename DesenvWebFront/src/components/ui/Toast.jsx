@@ -1,4 +1,4 @@
-// src/components/ui/Toast.jsx
+// Toast.jsx — notificação estilizada (alternativa visual ao React Toastify; pode ser usada isoladamente).
 import { CheckCircle, XCircle, Info, X } from 'lucide-react';
 
 const config = {

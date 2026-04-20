@@ -1,5 +1,6 @@
 namespace DesenvWebApi.Api.Models;
 
+// Comentário público num filme; Visivel reserva espaço para moderação futura sem apagar o registo.
 public class Comentario
 {
     public long Id { get; set; }

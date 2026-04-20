@@ -1,4 +1,4 @@
-// src/components/layout/Layout.jsx
+// Layout.jsx — grelha principal: Sidebar, TopBar e área de conteúdo (Outlet) com scroll independente.
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
@@ -9,6 +9,7 @@ function Layout() {
 
   useEffect(() => {
     if (!mobileNavOpen) return undefined;
+    // Evita scroll do fundo quando o drawer mobile está aberto.
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {

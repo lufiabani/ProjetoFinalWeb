@@ -1,3 +1,4 @@
+// InicioPage.jsx — orquestra o feed (filmes na plataforma), favoritos, perfil e modal de detalhe/comentários.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { MessagesSquare, Film, LayoutList, LayoutGrid, Search } from 'lucide-react';
 import { api } from '../../services/api';
@@ -10,6 +11,7 @@ import FilmeDetalheModal from '../filmes/FilmeDetalheModal';
 import PerfilFavoritosPainel from './PerfilFavoritosPainel';
 
 export default function InicioPage() {
+  // Perfil Keycloak espelhado na API (/usuarios/me).
   const [perfil, setPerfil] = useState(null);
   const [perfilErro, setPerfilErro] = useState(null);
   const [filmes, setFilmes] = useState([]);
@@ -19,7 +21,7 @@ export default function InicioPage() {
   const [vistaFilmo, setVistaFilmo] = useState('lista');
   const [ordenacaoFilmo, setOrdenacaoFilmo] = useState('comunidade');
   const [filtroNomeFilmo, setFiltroNomeFilmo] = useState('');
-  // Favoritos: GET /api/favoritos (N:N com Filme incluído) — estado local, sem contexto
+  // Favoritos com Filme incluído (GET /api/favoritos) — estado local, sem Redux/contexto extra.
   const [favoritosLista, setFavoritosLista] = useState([]);
 
   const { error: toastError } = useToast();
@@ -69,6 +71,7 @@ export default function InicioPage() {
     [favoritosLista, filmes, modalFilme],
   );
 
+  // Após favoritar, o feed precisa de totalFavoritos atualizado — aqui fazemos refresh controlado.
   const alternarComAtualizarFeed = useCallback(
     async (filmeId) => {
       try {
@@ -150,7 +153,7 @@ export default function InicioPage() {
     if (!q) return filmes;
     return filmes.filter((f) => {
       const t = (f.titulo ?? '').toLowerCase();
-      const o = (f.tituloOriginal ?? '').toLowerCase();
+      const o = (f.tituloOriginal ?? f.filmeDescricao?.tituloOriginal ?? '').toLowerCase();
       return t.includes(q) || o.includes(q);
     });
   }, [filmes, filtroNomeFilmo]);

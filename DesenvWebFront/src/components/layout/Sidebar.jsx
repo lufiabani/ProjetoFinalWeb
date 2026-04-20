@@ -1,8 +1,7 @@
-// src/components/layout/Sidebar.jsx
+// Sidebar.jsx — navegação principal e saída Keycloak (logout com redirect para a origem).
 import { NavLink } from 'react-router-dom';
 import { Film, Home, LogOut, ArrowDownToLine, X } from 'lucide-react';
 import { getKeycloak } from '../../keycloak';
-//import { useKeycloakContext } from '../../contexts/KeycloakContext';
 
 const menuItems = [
   { to: '/inicio', label: 'Início', icon: Home },
@@ -10,8 +9,6 @@ const menuItems = [
 ];
 
 function Sidebar({ mobileOpen, onClose }) {
-
-
   const sair = () => {
     getKeycloak()?.logout({ redirectUri: window.location.origin })
   };

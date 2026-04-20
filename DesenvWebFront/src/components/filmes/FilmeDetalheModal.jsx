@@ -1,3 +1,4 @@
+// FilmeDetalheModal.jsx — overlay com sinopse, favorito e CRUD de comentários (estado local, sem re-fetch global).
 import { useCallback, useEffect, useState } from 'react';
 import { X, Heart, Star, MessageCircle, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { posterUrl } from '../../services/tmdb';
@@ -10,6 +11,7 @@ import {
 import { useToast } from '../../hooks/useToast';
 import ConfirmDialog from '../ui/ConfirmDialog';
 
+// Limite alinhado ao que a API aceita de forma prática (evita textos enormes na BD).
 const MAX_CORPO = 8000;
 
 function formatarData(iso) {
@@ -161,6 +163,11 @@ export default function FilmeDetalheModal({
 
   if (!aberto || !filme) return null;
 
+  const desc = filme.filmeDescricao;
+  const tituloOriginal = desc?.tituloOriginal ?? filme.tituloOriginal;
+  const resumo = desc?.resumo ?? filme.sinopse;
+  const notaMediaTmdb = desc?.notaMediaTmdb ?? filme.notaMediaTmdb;
+
   const src = posterUrl(filme.posterPath, 'w500');
 
   return (
@@ -208,22 +215,27 @@ export default function FilmeDetalheModal({
                 >
                   {filme.titulo}
                 </h2>
-                {filme.tituloOriginal && filme.tituloOriginal !== filme.titulo ? (
-                  <p className="mt-0.5 text-sm text-slate-500">{filme.tituloOriginal}</p>
+                {tituloOriginal && tituloOriginal !== filme.titulo ? (
+                  <p className="mt-0.5 text-sm text-slate-500">{tituloOriginal}</p>
+                ) : null}
+                {filme.genero?.nome ? (
+                  <p className="mt-1 text-xs font-medium uppercase tracking-wide text-violet-600">
+                    {filme.genero.nome}
+                  </p>
                 ) : null}
                 <div className="mt-2 flex flex-wrap justify-center gap-2 text-sm text-slate-600 sm:justify-start">
                   {filme.dataLancamento ? <span>{String(filme.dataLancamento).slice(0, 4)}</span> : null}
-                  {filme.notaMediaTmdb != null ? (
+                  {notaMediaTmdb != null ? (
                     <span className="inline-flex items-center gap-0.5 text-amber-600">
                       <Star className="w-4 h-4 fill-current" />
-                      {Number(filme.notaMediaTmdb).toFixed(1)} TMDB
+                      {Number(notaMediaTmdb).toFixed(1)} TMDB
                     </span>
                   ) : null}
                 </div>
               </div>
             </div>
-            {filme.sinopse ? (
-              <p className="mt-4 text-sm text-slate-700 leading-relaxed">{filme.sinopse}</p>
+            {resumo ? (
+              <p className="mt-4 text-sm text-slate-700 leading-relaxed">{resumo}</p>
             ) : (
               <p className="mt-4 text-sm text-slate-400 italic">Sem sinopse.</p>
             )}

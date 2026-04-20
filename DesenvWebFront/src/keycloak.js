@@ -1,3 +1,4 @@
+// Instância singleton do keycloak-js (login PKCE, partilhada com api.js e Sidebar).
 import Keycloak from 'keycloak-js';
 
 let client;

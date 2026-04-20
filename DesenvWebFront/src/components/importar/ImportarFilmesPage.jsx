@@ -1,14 +1,19 @@
+// ImportarFilmesPage.jsx — pesquisa dupla (base local + TMDB) e importação via POST /filmes/cache.
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowDownToLine, Database, Globe, Loader2, Search } from 'lucide-react';
 import {
   buscarFilmesLocais,
+  extrairPrimeiroGeneroTmdbId,
   mapTmdbSearchResultToFilme,
   obterFilmePorTmdb,
   upsertFilmeCache,
 } from '../../services/filmesService';
-import { getTmdbApiKey, posterUrl, searchMovies } from '../../services/tmdb';
+import { listarGeneros, sincronizarGenerosDoTmdb } from '../../services/generoService';
+import { getKeycloak } from '../../keycloak';
+import { getMovieDetails, getTmdbApiKey, posterUrl, searchMovies } from '../../services/tmdb';
 import { useToast } from '../../hooks/useToast';
 
+// Atrasa o termo de pesquisa para não disparar uma requisição por tecla (alivia API e TMDB).
 function useDebouncedValue(value, delay) {
   const [d, setD] = useState(value);
   useEffect(() => {
@@ -28,7 +33,35 @@ export default function ImportarFilmesPage() {
   const [erroLocal, setErroLocal] = useState(null);
   const [erroTmdb, setErroTmdb] = useState(null);
   const [gravandoTmdbId, setGravandoTmdbId] = useState(null);
+  const [generos, setGeneros] = useState([]);
   const { success, error: toastError, info } = useToast();
+
+  // Ao abrir esta página: carrega géneros e, com sessão + chave TMDB, sincroniza a lista oficial (idempotente) — sem botão.
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      try {
+        let lista = await listarGeneros();
+        if (cancelado) return;
+        setGeneros(Array.isArray(lista) ? lista : []);
+
+        if (getTmdbApiKey() && getKeycloak()?.authenticated) {
+          try {
+            await sincronizarGenerosDoTmdb();
+            lista = await listarGeneros();
+            if (!cancelado) setGeneros(Array.isArray(lista) ? lista : []);
+          } catch {
+            /* mantém a lista já obtida; importação de filmes cria géneros em falta na mesma */
+          }
+        }
+      } catch {
+        if (!cancelado) setGeneros([]);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!debounced || debounced.trim().length < 2) {
@@ -92,6 +125,7 @@ export default function ImportarFilmesPage() {
   const importarDoTmdb = useCallback(
     async (movie) => {
       const id = movie.id;
+      const temChave = Boolean(getTmdbApiKey());
       setGravandoTmdbId(id);
       try {
         const existente = await obterFilmePorTmdb(id);
@@ -99,7 +133,23 @@ export default function ImportarFilmesPage() {
           info('Este filme já está na plataforma.');
           return;
         }
-        await upsertFilmeCache(mapTmdbSearchResultToFilme(movie));
+        // search/movie muitas vezes não traz géneros — pedimos detalhes ao TMDB; a API cria o género na base se for novo.
+        let fonte = movie;
+        if (extrairPrimeiroGeneroTmdbId(fonte) == null && temChave) {
+          try {
+            const detalhes = await getMovieDetails(movie.id);
+            fonte = { ...movie, ...detalhes };
+          } catch {
+            /* segue com fonte = movie */
+          }
+        }
+        if (extrairPrimeiroGeneroTmdbId(fonte) == null) {
+          toastError(
+            'O TMDB não indicou género para este filme. Escolhe outro título ou verifica os dados no TMDB.',
+          );
+          return;
+        }
+        await upsertFilmeCache(mapTmdbSearchResultToFilme(fonte));
         success('Filme importado para a plataforma.');
         if (debounced.trim().length >= 2) {
           try {
@@ -161,7 +211,24 @@ export default function ImportarFilmesPage() {
           <code className="rounded bg-amber-100 px-1">.env</code> ou <code className="rounded bg-amber-100 px-1">.env.development</code> e
           reinicia o Vite. Continuas a poder pesquisar filmes que já existem na plataforma.
         </p>
-      ) : null}
+      ) : (
+        <p className="mb-6 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-600">
+          {getKeycloak()?.authenticated ? (
+            <>
+              Com sessão iniciada, a <strong>lista oficial de géneros do TMDB</strong> é atualizada automaticamente ao
+              abrires esta página. Ao importar um filme, géneros em falta são criados na mesma.
+              {generos.length > 0 ? (
+                <span className="text-slate-500"> ({generos.length} género(s) na base.)</span>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <strong>Inicia sessão</strong> para carregar a lista completa de géneros do TMDB; mesmo sem isso, podes
+              importar filmes — cada filme cria o seu género na base se for preciso.
+            </>
+          )}
+        </p>
+      )}
 
       {q.trim().length > 0 && q.trim().length < 2 ? (
         <p className="text-sm text-slate-500">Indica pelo menos 2 caracteres para pesquisar.</p>

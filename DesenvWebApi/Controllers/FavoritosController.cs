@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DesenvWebApi.Api.Controllers;
 
+// FavoritosController — favoritos do utilizador autenticado (N:N com Filme); deduplicação na BD.
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
@@ -21,6 +22,7 @@ public class FavoritosController : ControllerBase
         _usuarios = usuarios;
     }
 
+    // GET /api/favoritos — lista com Filme (e género/descrição) para o painel lateral do SPA.
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Favorito>>> MeusFavoritos(CancellationToken cancellationToken)
     {
@@ -28,7 +30,10 @@ public class FavoritosController : ControllerBase
 
         var lista = await _db.Favoritos
             .AsNoTracking()
-            .Include(f => f.Filme)
+            .Include(f => f.Filme!)
+                .ThenInclude(fm => fm.Genero)
+            .Include(f => f.Filme!)
+                .ThenInclude(fm => fm.FilmeDescricao)
             .Where(f => f.UsuarioId == usuario.Id)
             .OrderByDescending(f => f.AdicionadoEm)
             .ToListAsync(cancellationToken);
@@ -36,6 +41,7 @@ public class FavoritosController : ControllerBase
         return Ok(lista);
     }
 
+    // POST /api/favoritos — body mínimo { filmeId }; 409 se já existir o par (utilizador, filme).
     [HttpPost]
     public async Task<ActionResult<Favorito>> Adicionar([FromBody] Favorito entrada, CancellationToken cancellationToken)
     {
@@ -65,6 +71,7 @@ public class FavoritosController : ControllerBase
         return CreatedAtAction(nameof(MeusFavoritos), null, favorito);
     }
 
+    // DELETE /api/favoritos/{filmeId} — remove pelo ID do filme (não pelo PK do favorito).
     [HttpDelete("{filmeId:long}")]
     public async Task<IActionResult> Remover(long filmeId, CancellationToken cancellationToken)
     {

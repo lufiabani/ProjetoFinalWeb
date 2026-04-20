@@ -1,8 +1,10 @@
+// MovieSearch.jsx — pesquisa na base a partir da TopBar; scroll suave até ao card com id filme-{id}.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Search, Loader2, Library } from 'lucide-react';
 import { buscarFilmesLocais } from '../../services/filmesService';
 import { posterUrl } from '../../services/tmdb';
 
+// Debounce do texto — evita martelar /filmes/buscar enquanto o utilizador escreve.
 function useDebouncedValue(value, delay) {
   const [d, setD] = useState(value);
   useEffect(() => {

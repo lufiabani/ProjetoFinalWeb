@@ -1,3 +1,4 @@
+// TopBar.jsx — barra fixa com menu mobile e pesquisa rápida de filmes já na base.
 import { Menu } from 'lucide-react';
 import MovieSearch from '../filmes/MovieSearch';
 

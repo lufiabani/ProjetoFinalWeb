@@ -1,3 +1,4 @@
+// FilmeGridCard.jsx — variante em grelha do mesmo contrato de props que FilmeFeedCard.
 import { Heart, Star, Users } from 'lucide-react';
 import { posterUrl as tmdbPoster } from '../../services/tmdb';
 

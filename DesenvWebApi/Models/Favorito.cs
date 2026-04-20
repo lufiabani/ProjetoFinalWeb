@@ -1,5 +1,6 @@
 namespace DesenvWebApi.Api.Models;
 
+// Liga utilizador a filme (N:N materializada); índice único (UsuarioId, FilmeId) impede duplicados.
 public class Favorito
 {
     public long Id { get; set; }

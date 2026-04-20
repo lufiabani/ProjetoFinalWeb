@@ -1,12 +1,12 @@
+// Cliente leve ao TMDB (fetch) + URLs de imagens; chave só no front para pesquisa/importação (nunca na API).
 const TMDB_API = 'https://api.themoviedb.org/3';
 const IMG_BASE = 'https://image.tmdb.org/t/p';
 
-/** Chave opcional: necessária para pesquisar e importar a partir do catálogo TMDB. */
 export function getTmdbApiKey() {
   return import.meta.env.VITE_TMDB_API_KEY?.trim() || '';
 }
 
-/** Constrói URL de poster a partir do path guardado na base (formato TMDB). */
+// Converte poster_path da API para URL absoluta com tamanho TMDB (w92, w185, w500, …).
 export function posterUrl(posterPath, size = 'w500') {
   if (!posterPath) return null;
   return `${IMG_BASE}/${size}${posterPath}`;
@@ -33,10 +33,22 @@ async function tmdbFetch(path, searchParams) {
   return res.json();
 }
 
-/** Resultados da pesquisa TMDB (search/movie), para importar na nossa API. */
 export async function searchMovies(query) {
   const q = query?.trim();
   if (!q || q.length < 2) return [];
   const data = await tmdbFetch('/search/movie', { query: q, include_adult: 'false' });
   return data.results ?? [];
+}
+
+// Detalhes completos (genres, runtime) — a pesquisa muitas vezes não traz género suficiente para a nossa API.
+export async function getMovieDetails(movieId) {
+  if (movieId == null || movieId <= 0) {
+    throw new Error('ID do filme TMDB inválido.');
+  }
+  return tmdbFetch(`/movie/${movieId}`, {});
+}
+
+export async function getMovieGenreList() {
+  const data = await tmdbFetch('/genre/movie/list', {});
+  return data.genres ?? [];
 }

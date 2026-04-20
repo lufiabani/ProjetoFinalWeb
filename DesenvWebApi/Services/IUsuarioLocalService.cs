@@ -5,6 +5,6 @@ namespace DesenvWebApi.Api.Services;
 
 public interface IUsuarioLocalService
 {
-    /// <summary>Garante <see cref="Usuario"/> na BD a partir das claims do Keycloak e persiste alterações de perfil.</summary>
+    // Cria ou atualiza o Utilizador local a partir do token (sub, email, nome) antes de favoritos/comentários.
     Task<Usuario> GarantirUsuarioAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default);
 }

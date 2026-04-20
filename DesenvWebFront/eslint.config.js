@@ -1,3 +1,4 @@
+// eslint.config.js — regras flat para React + Hooks + Fast Refresh no Vite.
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'

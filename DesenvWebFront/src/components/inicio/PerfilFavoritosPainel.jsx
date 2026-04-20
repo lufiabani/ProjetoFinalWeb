@@ -1,3 +1,4 @@
+// PerfilFavoritosPainel.jsx — resumo da sessão e atalhos aos favoritos (scroll até ao card no feed).
 import { User } from 'lucide-react';
 
 export default function PerfilFavoritosPainel({ perfil, perfilErro, favoritosLista }) {

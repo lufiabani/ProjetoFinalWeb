@@ -1,4 +1,4 @@
-// src/components/ui/Modal.jsx
+// Modal.jsx — diálogo reutilizável (foco, Escape, bloqueio de scroll) usado por ConfirmDialog.
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 
@@ -9,7 +9,6 @@ const sizes = {
 };
 
 function Modal({ isOpen, onClose, title, children, size = 'md' }) {
-  // Fecha o modal ao pressionar Escape
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') onClose();
@@ -17,7 +16,6 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }) {
 
     if (isOpen) {
       document.addEventListener('keydown', handleEsc);
-      // Impede o scroll do body enquanto o modal está aberto
       document.body.style.overflow = 'hidden';
     }
 
@@ -38,7 +36,6 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }) {
         className={`w-full max-h-[min(100dvh-1.5rem,40rem)] animate-fade-in overflow-y-auto rounded-xl bg-white shadow-2xl ${sizes[size]} sm:max-h-none`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between gap-2 border-b border-gray-200 px-4 py-3 sm:px-6 sm:py-4">
           <h2 className="min-w-0 text-base font-semibold text-gray-800 sm:text-lg">{title}</h2>
           <button
@@ -49,7 +46,6 @@ function Modal({ isOpen, onClose, title, children, size = 'md' }) {
           </button>
         </div>
 
-        {/* Body */}
         <div className="px-4 py-3 sm:px-6 sm:py-4">{children}</div>
       </div>
     </div>

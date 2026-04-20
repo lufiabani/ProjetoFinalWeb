@@ -1,6 +1,7 @@
+/* index.css — entrada Tailwind v4 + animações usadas por Modal e overlays. */
 @import "tailwindcss";
 
-/* Animações customizadas */
+/* Animações reutilizadas pelos componentes (ex.: FilmeDetalheModal). */
 @keyframes fade-in {
   from {
     opacity: 0;

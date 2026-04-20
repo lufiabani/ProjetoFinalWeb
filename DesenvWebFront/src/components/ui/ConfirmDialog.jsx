@@ -1,4 +1,4 @@
-// src/components/ui/ConfirmDialog.jsx
+// ConfirmDialog.jsx — confirmação destrutiva (ex.: apagar comentário) sobre o Modal base.
 import Modal from './Modal';
 import { AlertTriangle } from 'lucide-react';
 

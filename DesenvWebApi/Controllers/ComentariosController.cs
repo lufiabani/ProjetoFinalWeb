@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DesenvWebApi.Api.Controllers;
 
+// ComentariosController — discussão pública por filme; criar/editar/apagar exige JWT e só o autor altera o seu.
 [ApiController]
 [Route("api/[controller]")]
 public class ComentariosController : ControllerBase
@@ -20,6 +21,7 @@ public class ComentariosController : ControllerBase
         _usuarios = usuarios;
     }
 
+    // GET /api/comentarios?filmeId= — anónimo; se houver token válido, marca souAutor nos próprios comentários.
     [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> PorFilme(
@@ -36,7 +38,7 @@ public class ComentariosController : ControllerBase
             }
             catch (UnauthorizedAccessException)
             {
-                // Lista pública: sem marcar souAutor
+                // Token inválido ou sem sub: mantém lista pública sem flag souAutor.
             }
         }
 
@@ -55,7 +57,7 @@ public class ComentariosController : ControllerBase
             })
             .ToListAsync(cancellationToken);
 
-        // Mantém o mesmo contrato JSON que o front espera (sem classe DTO dedicada)
+        // Objeto anónimo para o SPA (evita DTO extra, conforme restrições do projeto).
         var lista = linhas.Select(x => new
         {
             x.Id,
@@ -69,6 +71,7 @@ public class ComentariosController : ControllerBase
         return Ok(lista);
     }
 
+    // POST /api/comentarios — associa ao utilizador da sessão e devolve o mesmo formato da listagem.
     [Authorize]
     [HttpPost]
     public async Task<IActionResult> Criar([FromBody] Comentario entrada, CancellationToken cancellationToken)
@@ -107,6 +110,7 @@ public class ComentariosController : ControllerBase
         return CreatedAtAction(nameof(PorFilme), new { filmeId = entrada.FilmeId }, resposta);
     }
 
+    // PUT /api/comentarios/{id} — só o autor; corpo parcial (texto) atualizado campo a campo.
     [Authorize]
     [HttpPut("{id:long}")]
     public async Task<IActionResult> Editar(long id, [FromBody] Comentario entrada, CancellationToken cancellationToken)
@@ -127,6 +131,7 @@ public class ComentariosController : ControllerBase
         return NoContent();
     }
 
+    // DELETE /api/comentarios/{id} — só o autor remove o próprio comentário.
     [Authorize]
     [HttpDelete("{id:long}")]
     public async Task<IActionResult> Apagar(long id, CancellationToken cancellationToken)

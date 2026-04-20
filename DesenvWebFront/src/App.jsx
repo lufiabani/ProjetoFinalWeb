@@ -1,4 +1,4 @@
-// src/App.jsx
+// App.jsx — rotas do SPA: shell com Layout, redirecionamento da raiz para /inicio.
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import InicioPage from './components/inicio/InicioPage';

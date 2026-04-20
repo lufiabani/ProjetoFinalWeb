@@ -1,3 +1,4 @@
+// AppDbContext.cs — mapeamento EF Core (Fluent API) e carimbos de data em UTC ao gravar.
 using DesenvWebApi.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,12 +12,12 @@ public class AppDbContext : DbContext
 
     public DbSet<Usuario> Usuarios { get; set; }
     public DbSet<Filme> Filmes { get; set; }
+    public DbSet<FilmeDescricao> FilmeDescricoes { get; set; }
     public DbSet<Genero> Generos { get; set; }
-    public DbSet<FilmeGenero> FilmeGeneros { get; set; }
     public DbSet<Favorito> Favoritos { get; set; }
-    public DbSet<AvaliacaoUsuario> AvaliacoesUsuario { get; set; }
     public DbSet<Comentario> Comentarios { get; set; }
 
+    // Centraliza CriadoEm/AtualizadoEm/SincronizadoEm para não depender de cada controlador (sempre UTC).
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var utc = DateTime.UtcNow;
@@ -38,13 +39,13 @@ public class AppDbContext : DbContext
                         case Favorito fav:
                             fav.AdicionadoEm = utc;
                             break;
-                        case AvaliacaoUsuario a:
-                            a.CriadoEm = utc;
-                            a.AtualizadoEm = utc;
-                            break;
                         case Comentario c:
                             c.CriadoEm = utc;
                             c.EditadoEm = utc;
+                            break;
+                        case FilmeDescricao d:
+                            d.CriadoEm = utc;
+                            d.AtualizadoEm = utc;
                             break;
                     }
 
@@ -59,11 +60,11 @@ public class AppDbContext : DbContext
                         case Genero g:
                             g.SincronizadoEm = utc;
                             break;
-                        case AvaliacaoUsuario a:
-                            a.AtualizadoEm = utc;
-                            break;
                         case Comentario c:
                             c.EditadoEm = utc;
+                            break;
+                        case FilmeDescricao d:
+                            d.AtualizadoEm = utc;
                             break;
                     }
 
@@ -76,6 +77,7 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Um utilizador local por identidade Keycloak (sub).
         modelBuilder.Entity<Usuario>(e =>
         {
             e.HasIndex(u => u.KeycloakSub).IsUnique();
@@ -84,17 +86,35 @@ public class AppDbContext : DbContext
             e.Property(u => u.NomeExibicao).HasMaxLength(256);
         });
 
+        // Filme: género obrigatório (Restrict ao apagar género com filmes) + detalhe 1:1 (Cascade).
         modelBuilder.Entity<Filme>(e =>
         {
             e.HasIndex(f => f.TmdbId).IsUnique();
             e.Property(f => f.Titulo).HasMaxLength(512).IsRequired();
-            e.Property(f => f.TituloOriginal).HasMaxLength(512);
             e.Property(f => f.PosterPath).HasMaxLength(512);
-            e.Property(f => f.BackdropPath).HasMaxLength(512);
-            e.Property(f => f.IdiomaOriginal).HasMaxLength(16);
-            e.Property(f => f.ImdbId).HasMaxLength(32);
-            e.Property(f => f.NotaMediaTmdb).HasPrecision(4, 2);
-            e.Property(f => f.MetadadosTmdbJson).HasColumnType("jsonb");
+
+            e.HasOne(f => f.Genero)
+                .WithMany(g => g.Filmes)
+                .HasForeignKey(f => f.GeneroId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 1:1 — detalhe sem filme principal não faz sentido: cascade ao apagar filme
+            e.HasOne(f => f.FilmeDescricao)
+                .WithOne(d => d.Filme)
+                .HasForeignKey<FilmeDescricao>(d => d.FilmeId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Tipos e tamanhos explícitos para PostgreSQL (jsonb, precisão decimal).
+        modelBuilder.Entity<FilmeDescricao>(e =>
+        {
+            e.HasIndex(d => d.FilmeId).IsUnique();
+            e.Property(d => d.TituloOriginal).HasMaxLength(512);
+            e.Property(d => d.BackdropPath).HasMaxLength(512);
+            e.Property(d => d.IdiomaOriginal).HasMaxLength(16);
+            e.Property(d => d.ImdbId).HasMaxLength(32);
+            e.Property(d => d.NotaMediaTmdb).HasPrecision(4, 2);
+            e.Property(d => d.MetadadosTmdbJson).HasColumnType("jsonb");
         });
 
         modelBuilder.Entity<Genero>(e =>
@@ -103,19 +123,7 @@ public class AppDbContext : DbContext
             e.Property(g => g.Nome).HasMaxLength(128).IsRequired();
         });
 
-        modelBuilder.Entity<FilmeGenero>(e =>
-        {
-            e.HasKey(fg => new { fg.FilmeId, fg.GeneroId });
-            e.HasOne(fg => fg.Filme)
-                .WithMany(f => f.FilmeGeneros)
-                .HasForeignKey(fg => fg.FilmeId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(fg => fg.Genero)
-                .WithMany(g => g.FilmeGeneros)
-                .HasForeignKey(fg => fg.GeneroId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
+        // Par (utilizador, filme) único — evita favoritos duplicados.
         modelBuilder.Entity<Favorito>(e =>
         {
             e.HasIndex(f => new { f.UsuarioId, f.FilmeId }).IsUnique();
@@ -129,19 +137,7 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<AvaliacaoUsuario>(e =>
-        {
-            e.HasIndex(a => new { a.UsuarioId, a.FilmeId }).IsUnique();
-            e.HasOne(a => a.Usuario)
-                .WithMany(u => u.Avaliacoes)
-                .HasForeignKey(a => a.UsuarioId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(a => a.Filme)
-                .WithMany(f => f.Avaliacoes)
-                .HasForeignKey(a => a.FilmeId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
+        // Comentário ligado ao utilizador e ao filme; apagar pai remove filhos (Cascade).
         modelBuilder.Entity<Comentario>(e =>
         {
             e.Property(c => c.Corpo).IsRequired();

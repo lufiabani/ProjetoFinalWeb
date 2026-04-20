@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DesenvWebApi.Api.Controllers;
 
+// UsuariosController — perfil mínimo do utilizador local após login Keycloak.
 [ApiController]
 [Route("api/[controller]")]
 public class UsuariosController : ControllerBase
@@ -15,7 +16,7 @@ public class UsuariosController : ControllerBase
         _usuarios = usuarios;
     }
 
-    /// <summary>Garante o registo local do utilizador (Keycloak) e devolve o perfil.</summary>
+    // GET /api/usuarios/me — cria/atualiza o registo local e devolve id, email e nome de exibição.
     [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> GetMe(CancellationToken cancellationToken)
