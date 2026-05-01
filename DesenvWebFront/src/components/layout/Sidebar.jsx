@@ -12,31 +12,32 @@ const menuItems = [
 
 function Sidebar({ mobileOpen, onClose }) {
   const sair = () => {
-    getKeycloak()?.logout({ redirectUri: window.location.origin })
+    getKeycloak()?.logout({ redirectUri: window.location.origin });
   };
 
-  const fecharSeMobile = () => {
+  const fechar = () => {
     onClose?.();
   };
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 flex h-full w-[min(100%,16rem)] max-w-[85vw] flex-col bg-gray-900 text-white transition-transform duration-200 ease-out lg:static lg:z-auto lg:w-64 lg:max-w-none lg:flex-shrink-0 lg:translate-x-0 ${
-        mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      id="app-sidebar"
+      className={`fixed inset-y-0 left-0 z-50 flex h-full w-[min(100%,16rem)] max-w-[85vw] flex-col bg-gray-900 text-white shadow-2xl shadow-black/40 transition-transform duration-200 ease-out sm:w-64 sm:max-w-none ${
+        mobileOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
     >
       <div className="relative border-b border-gray-700 px-4 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
         <button
           type="button"
-          onClick={fecharSeMobile}
-          className="absolute right-2 top-4 z-10 rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white lg:hidden"
+          onClick={fechar}
+          className="absolute right-2 top-4 z-10 rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white"
           aria-label="Fechar menu"
         >
           <X className="h-5 w-5" />
         </button>
         <NavLink
           to="/inicio"
-          onClick={fecharSeMobile}
+          onClick={fechar}
           className="flex w-full justify-center outline-none ring-offset-2 ring-offset-gray-900 focus-visible:ring-2 focus-visible:ring-fuchsia-400"
           title="Ir para o início"
         >
@@ -57,7 +58,7 @@ function Sidebar({ mobileOpen, onClose }) {
             <li key={item.to}>
               <NavLink
                 to={item.to}
-                onClick={fecharSeMobile}
+                onClick={fechar}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     isActive
