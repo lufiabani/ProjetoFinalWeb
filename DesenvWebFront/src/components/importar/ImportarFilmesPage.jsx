@@ -9,6 +9,7 @@ import {
   upsertFilmeCache,
 } from '../../services/filmesService';
 import { listarGeneros, sincronizarGenerosDoTmdb } from '../../services/generoService';
+import { mensagemErroApi } from '../../services/api';
 import { getKeycloak } from '../../keycloak';
 import { getMovieDetails, getTmdbApiKey, posterUrl, searchMovies } from '../../services/tmdb';
 import { useToast } from '../../hooks/useToast';
@@ -84,8 +85,7 @@ export default function ImportarFilmesPage() {
         if (!cancelado) setLocais(Array.isArray(lista) ? lista : []);
       } catch (e) {
         if (!cancelado) {
-          const msg = e.response?.data?.mensagem ?? e.message ?? 'Erro ao pesquisar na plataforma';
-          setErroLocal(typeof msg === 'string' ? msg : JSON.stringify(msg));
+          setErroLocal(mensagemErroApi(e, 'Erro ao pesquisar na plataforma'));
           setLocais([]);
         }
       } finally {
@@ -160,8 +160,7 @@ export default function ImportarFilmesPage() {
           }
         }
       } catch (e) {
-        const msg = e.response?.data?.mensagem ?? e.response?.data?.title ?? e.message;
-        toastError(typeof msg === 'string' ? msg : 'Não foi possível importar.');
+        toastError(mensagemErroApi(e, 'Não foi possível importar.'));
       } finally {
         setGravandoTmdbId(null);
       }

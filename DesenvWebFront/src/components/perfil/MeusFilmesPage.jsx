@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Bookmark, Film } from 'lucide-react';
 import { obterFilme } from '../../services/filmesService';
 import { adicionarFavorito, listarFavoritos, removerFavorito } from '../../services/favoritosService';
+import { mensagemErroApi } from '../../services/api';
 import { useToast } from '../../hooks/useToast';
 import FilmeGridCard from '../filmes/FilmeGridCard';
 import FilmeFeedCard from '../filmes/FilmeFeedCard';
@@ -65,8 +66,7 @@ export default function MeusFilmesPage() {
       try {
         await alternarFavorito(filmeId);
       } catch (e) {
-        const msg = e.response?.data?.mensagem ?? e.message;
-        toastError(typeof msg === 'string' ? msg : 'Não foi possível atualizar favoritos.');
+        toastError(mensagemErroApi(e, 'Não foi possível atualizar favoritos.'));
       }
     },
     [alternarFavorito, toastError],
@@ -82,8 +82,8 @@ export default function MeusFilmesPage() {
         }
         setModalFilme(completo);
         setModalAberto(true);
-      } catch {
-        toastError('Não foi possível carregar os detalhes do filme.');
+      } catch (e) {
+        toastError(mensagemErroApi(e, 'Não foi possível carregar os detalhes do filme.'));
       }
     },
     [toastError],

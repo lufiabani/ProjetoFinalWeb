@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Search, Loader2, Library } from 'lucide-react';
 import { buscarFilmesLocais } from '../../services/filmesService';
+import { mensagemErroApi } from '../../services/api';
 import { posterUrl } from '../../services/tmdb';
 
 // Debounce do texto — evita martelar /filmes/buscar enquanto o utilizador escreve.
@@ -51,8 +52,7 @@ export default function MovieSearch() {
         setResultados(Array.isArray(loc) ? loc : []);
       } catch (e) {
         if (cancelado) return;
-        const msg = e.response?.data?.mensagem ?? e.message ?? 'Erro na pesquisa';
-        setErro(typeof msg === 'string' ? msg : JSON.stringify(msg));
+        setErro(mensagemErroApi(e, 'Erro na pesquisa'));
         setResultados([]);
       } finally {
         if (!cancelado) setACarregar(false);

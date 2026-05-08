@@ -1,7 +1,7 @@
 // InicioPage.jsx — orquestra o feed (filmes na plataforma), favoritos, perfil e modal de detalhe/comentários.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Film, LayoutList, LayoutGrid, Search, Quote, Sparkles } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, mensagemErroApi } from '../../services/api';
 import { listarFilmesFeed, obterFilme } from '../../services/filmesService';
 import { adicionarFavorito, listarFavoritos, removerFavorito } from '../../services/favoritosService';
 import { listarGeneros } from '../../services/generoService';
@@ -86,8 +86,7 @@ export default function InicioPage() {
         await alternarFavorito(filmeId);
         await recarregarFilmes();
       } catch (e) {
-        const msg = e.response?.data?.mensagem ?? e.message;
-        toastError(typeof msg === 'string' ? msg : 'Não foi possível atualizar favoritos.');
+        toastError(mensagemErroApi(e, 'Não foi possível atualizar favoritos.'));
       }
     },
     [alternarFavorito, recarregarFilmes, toastError],
@@ -100,12 +99,7 @@ export default function InicioPage() {
         const { data } = await api.get('/usuarios/me');
         if (ativo) setPerfil(data);
       } catch (e) {
-        const msg =
-          e.response?.data?.title ??
-          e.response?.data?.mensagem ??
-          e.response?.data ??
-          e.message;
-        if (ativo) setPerfilErro(typeof msg === 'string' ? msg : JSON.stringify(msg));
+        if (ativo) setPerfilErro(mensagemErroApi(e, 'Não foi possível carregar o perfil.'));
       }
     })();
     return () => {

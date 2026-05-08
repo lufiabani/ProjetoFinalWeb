@@ -8,6 +8,7 @@ import {
   editarComentario,
   listarComentariosPorFilme,
 } from '../../services/comentariosService';
+import { mensagemErroApi } from '../../services/api';
 import { useToast } from '../../hooks/useToast';
 import ConfirmDialog from '../ui/ConfirmDialog';
 
@@ -63,8 +64,7 @@ export default function FilmeDetalheModal({
       } catch (e) {
         if (!cancelado) {
           setComentarios([]);
-          const msg = e.response?.data?.mensagem ?? e.message;
-          toastError(typeof msg === 'string' ? msg : 'Não foi possível carregar os comentários.');
+          toastError(mensagemErroApi(e, 'Não foi possível carregar os comentários.'));
         }
       } finally {
         if (!cancelado) setComentariosCarregando(false);
@@ -96,8 +96,7 @@ export default function FilmeDetalheModal({
         setTextoNovo('');
         success('Comentário publicado.');
       } catch (err) {
-        const msg = err.response?.data?.mensagem ?? err.response?.data?.title ?? err.message;
-        toastError(typeof msg === 'string' ? msg : 'Não foi possível publicar o comentário.');
+        toastError(mensagemErroApi(err, 'Não foi possível publicar o comentário.'));
       } finally {
         setEnviando(false);
       }
@@ -138,8 +137,7 @@ export default function FilmeDetalheModal({
       cancelarEdicao();
       success('Comentário atualizado.');
     } catch (err) {
-      const msg = err.response?.data?.mensagem ?? err.message;
-      toastError(typeof msg === 'string' ? msg : 'Não foi possível guardar.');
+      toastError(mensagemErroApi(err, 'Não foi possível guardar.'));
     } finally {
       setGravandoEdicao(false);
     }
@@ -154,8 +152,7 @@ export default function FilmeDetalheModal({
       setApagarId(null);
       success('Comentário removido.');
     } catch (err) {
-      const msg = err.response?.data?.mensagem ?? err.message;
-      toastError(typeof msg === 'string' ? msg : 'Não foi possível apagar.');
+      toastError(mensagemErroApi(err, 'Não foi possível apagar.'));
     } finally {
       setApagando(false);
     }
