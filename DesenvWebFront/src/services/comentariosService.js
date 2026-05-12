@@ -25,5 +25,6 @@ export async function editarComentario(id, corpo) {
 }
 
 export async function apagarComentario(id) {
-  await api.delete(`/comentarios/${id}`);
+  const { data } = await api.delete(`/comentarios/${id}`);
+  return data;
 }

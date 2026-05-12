@@ -12,5 +12,6 @@ export async function adicionarFavorito(filmeId) {
 }
 
 export async function removerFavorito(filmeId) {
-  await api.delete(`/favoritos/${filmeId}`);
+  const { data } = await api.delete(`/favoritos/${filmeId}`);
+  return data;
 }

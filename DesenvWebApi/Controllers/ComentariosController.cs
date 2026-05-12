@@ -161,7 +161,7 @@ public class ComentariosController : ControllerBase
         return NoContent();
     }
 
-    // DELETE /api/comentarios/{id} — só o autor remove o próprio comentário.
+    // DELETE /api/comentarios/{id} — só o autor remove o próprio comentário; 200 com { mensagem } em sucesso.
     [Authorize]
     [HttpDelete("{id:long}")]
     public async Task<IActionResult> Apagar(long id, CancellationToken cancellationToken)
@@ -176,6 +176,6 @@ public class ComentariosController : ControllerBase
 
         _db.Comentarios.Remove(comentario);
         await _db.SaveChangesAsync(cancellationToken);
-        return NoContent();
+        return Ok(new { mensagem = "Comentário removido com sucesso." });
     }
 }

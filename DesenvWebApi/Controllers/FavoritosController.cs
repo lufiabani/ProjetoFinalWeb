@@ -71,7 +71,7 @@ public class FavoritosController : ControllerBase
         return CreatedAtAction(nameof(MeusFavoritos), null, favorito);
     }
 
-    // DELETE /api/favoritos/{filmeId} — remove pelo ID do filme (não pelo PK do favorito).
+    // DELETE /api/favoritos/{filmeId} — remove pelo ID do filme (não pelo PK do favorito); 200 com { mensagem } em sucesso.
     [HttpDelete("{filmeId:long}")]
     public async Task<IActionResult> Remover(long filmeId, CancellationToken cancellationToken)
     {
@@ -85,6 +85,6 @@ public class FavoritosController : ControllerBase
 
         _db.Favoritos.Remove(favorito);
         await _db.SaveChangesAsync(cancellationToken);
-        return NoContent();
+        return Ok(new { mensagem = "Favorito removido com sucesso." });
     }
 }
